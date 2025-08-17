@@ -1,0 +1,188 @@
+* {
+    font-family: "montserrat";
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    background-image: url('../DesignHud/background2.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+}
+
+
+#login, #Register, #Forgot-Password {
+    position: fixed;
+    left: 30px;
+    bottom: 40px;
+    width: 350px;
+    padding: 30px 30px 20px 30px;
+    background: rgba(200, 200, 200, 0.25);
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    border: 2px solid #aaa;
+    backdrop-filter: blur(2px);
+    z-index: 10;
+}
+
+#login span,
+#Register span,
+#Forgot-Password span {
+    display: block;
+    margin-bottom: 8px;
+    color: #222;
+    font-weight: 500;
+}
+
+#login input[type="text"],
+#login input[type="password"],
+#Register input[type="text"],
+#Register input[type="password"],
+#Register input[type="email"],
+#Forgot-Password input[type="text"] {
+    padding: 6px 10px;
+    font-size: 16px;
+}
+
+#login .login-btn {
+    margin-left: auto;
+    display: block;
+    margin-right: 25px;
+}
+
+.username-lb, .password-lb {
+    width: 40%;
+    display: inline-block;
+}
+.username-txt, .password-txt {
+    width: 150px;
+    height: 25px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+.username-row, .password-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+
+.reg-fg-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}   
+
+.forgot-password-lb {
+    margin-left: auto;
+    margin-right: 20px;
+}
+
+.reg-fg-row > * {
+    display: unset;
+}
+
+#login input[type="submit"],
+#Register input[type="submit"],
+#Forgot-Password input[type="submit"] {
+    width: 100px;
+    padding: 8px 0;
+    border-radius: 8px;
+    border: 2px;
+    font-size: 15px;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+
+#login input[type="submit"] {
+    background-color: #dbcdcd;
+}
+
+#login .register-lb,
+#login .forgot-password-lb,
+#Register .back-btn,
+#Forgot-Password .back-btn {
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+
+.wrapper {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    margin: 30px;
+    margin-bottom: 40px;
+    width: 420px;
+    color: #ffff;
+}
+
+.remember-row {
+    display: flex;
+    align-items: center;
+    border-radius: 6px;
+    padding: 4px 10px;
+    width: fit-content;
+}
+.remember-cb {
+    width: 15px;
+    height: 15px;
+    margin-right: 8px;
+    accent-color: white
+}
+.remember-lb {
+    
+    font-size: 13px;
+    color: #222;
+    font-weight: 500;
+    margin: 0;
+}
+
+#Register input[type="text"],
+#Register input[type="password"],
+#Register input[type="email"] {
+    width: 150px;
+    height: 25px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+#Register .register-btn {
+    margin-left: auto;
+    display: block;
+    margin-right: 25px;
+    background-color: #dbcdcd;
+    width: 100px;
+    padding: 8px 0;
+    border-radius: 8px;
+    border: 2px;
+    font-size: 15px;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+
+#Register .username-row, #Register .password-row, #Register .email-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+#Register .username-lb, #Register .password-lb, #Register .email-lb {
+    width: 40%;
+    display: inline-block;
+}
+

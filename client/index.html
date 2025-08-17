@@ -7,11 +7,72 @@
     <title>Board Card Game</title>
     <link rel="stylesheet" href="style.css">
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <script src="/socket.io/socket.io.js"></script>
     <script src="./client.js" defer></script>
 </head>
 <body>
     <h1>Board Card Game</h1>
-    <form action=""></form>
+    <div id="login-box">
+        <div id="login">
+            <div class="background"></div>
+            <div class="username-row">
+                <span class="username-lb">TÀI KHOẢN</span>
+                <input class="username-txt" type="text" maxlength="15">
+            </div>
+            <div class="password-row">
+                <span class="password-lb">MẬT KHẨU</span>
+                <input class="password-txt" type="password" maxlength="15">
+            </div>
+            <div class="remember-row">
+                <input class="remember-cb" type="checkbox" checked>
+                <span class="remember-lb">Lưu lần đăng nhập kế tiếp</span>
+            </div>
+            <input class="login-btn" type="submit" value="Đăng nhập">
+            <div class="reg-fg-row">
+                <span class="register-lb">Đăng kí</span>
+                <span class="forgot-password-lb">Quên mật khẩu</span>
+            </div>
+            
+        </div>
+
+        <div id="Register">
+            <div class="background"></div>
+            <div class="username-row">
+                <span class="username-lb">TÀI KHOẢN</span>
+                <input class="username-txt" type="text" maxlength="15">
+            </div>
+            <div class="password-row">
+                <span class="password-lb">MẬT KHẨU</span>
+                <input class="password-txt" type="password" maxlength="15">
+            </div>
+            <div class="email-row">
+                <span class="email-lb">Email</span>
+                <input class="email-txt" type="text">
+            </div>
+            <span class="remember-lb">Lưu ý: Bạn cần phải xác nhận email của mình</span>
+            <span class="back-btn">Quay lại</span>
+            <input class="register-btn" type="submit" value="Đăng kí">
+         </div>
+    </div>
+
+        <div id="Forgot-Password">
+            <div class="background"></div>
+            <span class="desc-txt">Nhập email mà bạn từng đăng kí. Sẽ có một e-mail gửi về với link để reset lại mật khẩu của bạn</span>
+            <span class="email-lb">Email</span>
+            <input class="email-txt" type="text">
+            <span class="back-btn">Quay lại</span>
+            <input class="reset-password-btn" type="submit" value="Reset mật khẩu">
+        </div>
+
+        <div id="logged-in">
+            <div id="background"></div>
+            <span id="logged-in-as-lb">Đã đăng nhập bởi:</span>
+            <span id="username-txt"></span>
+            <span class="logout-btn">Đăng xuất</span>
+            <span class="switch-account-btn">Đổi tài khoản</span>
+        </div>
+    </div>
+
 </body>
 </html>

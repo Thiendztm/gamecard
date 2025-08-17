@@ -7,6 +7,7 @@ const { Server } = require("socket.io");
 const io = new Server(server)
 
 app.use(express.static(path.join(__dirname, 'client')));
+app.use('/DesignHud', express.static(path.join(__dirname, 'DesignHud')));
 
 app.get('/healthcheck', (req, res) => {
   res.send('CBG App running...');
@@ -24,5 +25,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(4000, () => {
-    console.log('Listening on port 5500');
+    console.log('Listening on port 4000');
 });
