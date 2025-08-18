@@ -20,6 +20,7 @@ body {
     left: 30px;
     bottom: 40px;
     width: 350px;
+    height: 240px;
     padding: 30px 30px 20px 30px;
     background: rgba(200, 200, 200, 0.25);
     border-radius: 12px;
@@ -29,14 +30,19 @@ body {
     z-index: 10;
 }
 
-#login span,
-#Register span,
-#Forgot-Password span {
-    display: block;
+#login span:not(.username-lb,.password-lb, .email-lb),
+#Register span:not(.username-lb,.password-lb, .email-lb),
+#Forgot-Password span:not(.username-lb,.password-lb, .email-lb) {
     margin-bottom: 8px;
     color: #222;
     font-weight: 500;
 }
+.username-lb, .password-lb, .email-lb {
+    font-weight: 600;   
+    margin-bottom: 8px;
+    color: #222;
+}
+
 
 #login input[type="text"],
 #login input[type="password"],
@@ -75,7 +81,7 @@ body {
 .reg-fg-row {
     display: flex;
     align-items: center;
-    gap: 16px;
+    justify-content: space-between;
 }   
 
 .forgot-password-lb {
@@ -85,6 +91,12 @@ body {
 
 .reg-fg-row > * {
     display: unset;
+}
+
+.back-reg-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 #login input[type="submit"],
@@ -150,7 +162,8 @@ body {
 
 #Register input[type="text"],
 #Register input[type="password"],
-#Register input[type="email"] {
+#Register input[type="email"],
+#Forgot-Password input[type="text"] {
     width: 150px;
     height: 25px;
     box-sizing: border-box;
@@ -184,5 +197,24 @@ body {
 #Register .username-lb, #Register .password-lb, #Register .email-lb {
     width: 40%;
     display: inline-block;
+}
+
+#Forgot-Password .email-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+    margin-top: 15px;
+}
+
+#Forgot-Password .email-lb {
+    width: 40%;
+    display: inline-block;
+}
+
+#Forgot-Password .back-reset-row {
+    display: flex;
+    align-items: center;
+    gap: 85px;
 }
 
