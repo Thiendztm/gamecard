@@ -15,7 +15,7 @@ body {
 }
 
 
-#login, #Register, #Forgot-Password {
+#login, #Register, #Verification, #Forgot-Password, #logged-in {
     position: fixed;
     left: 30px;
     bottom: 40px;
@@ -30,16 +30,20 @@ body {
     z-index: 10;
 }
 
+#Register, #Verification, #Forgot-Password, #logged-in {
+    display: none;
+}
+
 #login span:not(.username-lb,.password-lb, .email-lb),
 #Register span:not(.username-lb,.password-lb, .email-lb),
+#Verification span:not(.verification-lb),
 #Forgot-Password span:not(.username-lb,.password-lb, .email-lb) {
     margin-bottom: 8px;
     font-weight: 500;
 }
-.username-lb, .password-lb, .email-lb {
+.username-lb, .password-lb, .email-lb, .verification-lb {
     font-weight: 600;   
     margin-bottom: 8px;
-
 }
 
 
@@ -48,6 +52,7 @@ body {
 #Register input[type="text"],
 #Register input[type="password"],
 #Register input[type="email"],
+#Verification input[type="text"],
 #Forgot-Password input[type="text"] {
     padding: 6px 10px;
     font-size: 16px;
@@ -100,6 +105,7 @@ body {
 
 #login input[type="submit"],
 #Register input[type="submit"],
+#Verification input[type="submit"],
 #Forgot-Password input[type="submit"] {
     width: 100px;
     padding: 8px 0;
@@ -115,11 +121,22 @@ body {
 
 #login input[type="submit"] {
     background-color: #dbcdcd;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+#login input[type="submit"]:disabled {
+    cursor: not-allowed;
+    background-color: #a0a0a0;
+}
+
+#login input[type="submit"]:hover:not(:disabled) {
+    background-color: #c5b8b8;
 }
 
 #login .register-lb,
 #login .forgot-password-lb,
 #Register .back-btn,
+#Verification .back-btn,
 #Forgot-Password .back-btn {
     text-decoration: underline;
     cursor: pointer;
@@ -183,7 +200,16 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     cursor: pointer;
     margin-bottom: 10px;
-    transition: background 0.2s;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+#Register .register-btn:disabled {
+    cursor: not-allowed;
+    background-color: #a0a0a0;
+}
+
+#Register .register-btn:hover:not(:disabled) {
+    background-color: #c5b8b8;
 }
 
 #Register .username-row, #Register .password-row, #Register .email-row {
@@ -231,3 +257,238 @@ body {
     height:  auto;
 }
 
+#Verification .verification-info {
+    margin-bottom: 15px;
+}
+
+#Verification .desc-txt {
+    font-size: 14px;
+    line-height: 1.4;
+    display: block;
+    margin-bottom: 15px;
+}
+
+#Verification .verification-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+#Verification .verification-lb {
+    width: 40%;
+    display: inline-block;
+}
+
+#Verification .verification-txt {
+    width: 150px;
+    height: 25px;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+#Verification .back-verify-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#Verification .verify-btn {
+    margin-left: auto;
+    display: block;
+    margin-right: 25px;
+    background-color: #dbcdcd;
+    width: 100px;
+    padding: 8px 0;
+    border-radius: 8px;
+    border: 2px;
+    font-size: 15px;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+#Verification .verify-btn:disabled {
+    cursor: not-allowed;
+    background-color: #a0a0a0;
+}
+
+#Verification .verify-btn:hover:not(:disabled) {
+    background-color: #c5b8b8;
+}
+
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.alert-message {
+    animation: slideIn 0.3s ease-out;
+}
+
+.alert-message.success {
+    background-color: #28a745;
+}
+
+.alert-message.error {
+    background-color: #dc3545;
+}
+
+#logged-in #username-txt {
+    display: block;
+    font-weight: 700;
+    font-size: 18px;
+    color: #FFD700;
+    margin-bottom: 20px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+#logged-in .logout-btn {
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+#game-info-panel {
+    position: fixed;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 900px;
+    max-height: 80vh;
+    background: rgba(20, 20, 30, 0.95);
+    border: 2px solid #73c19c;
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+    backdrop-filter: blur(10px);
+    overflow-y: auto;
+    z-index: 8;
+}
+
+.panel-header {
+    background: linear-gradient(135deg, #00ff88, #00cc6a);
+    padding: 20px;
+    text-align: center;
+    border-radius: 13px 13px 0 0;
+    border-bottom: 2px solid #00ff88;
+}
+
+.panel-header h2 {
+    margin: 0;
+    color: #000;
+    font-size: 24px;
+    font-weight: 800;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    letter-spacing: 1px;
+}
+
+.header-line {
+    width: 60px;
+    height: 3px;
+    background: #000;
+    margin: 10px auto 0;
+    border-radius: 2px;
+}
+
+.panel-content {
+    padding: 25px;
+    color: #ffffff;
+}
+
+.game-description,
+.game-features {
+    margin-bottom: 25px;
+}
+
+.panel-content h3 {
+    color: #00ff88;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.panel-content p {
+    line-height: 1.6;
+    font-size: 14px;
+    color: #e0e0e0;
+    margin-bottom: 15px;
+}
+
+.panel-content ul {
+    list-style: none;
+    padding: 0;
+}
+
+.panel-content li {
+    padding: 8px 0;
+    font-size: 14px;
+    color: #e0e0e0;
+    border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.panel-content li:last-child {
+    border-bottom: none;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 15px;
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    border-radius: 10px;
+}
+
+.stat-number {
+    display: block;
+    font-size: 24px;
+    font-weight: 800;
+    color: #00ff88;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.stat-label {
+    display: block;
+    font-size: 12px;
+    color: #b0b0b0;
+    margin-top: 5px;
+}
+
+/* Scrollbar styling for panel */
+#game-info-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+#game-info-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+#game-info-panel::-webkit-scrollbar-thumb {
+    background: #00ff88;
+    border-radius: 10px;
+}
+
+#game-info-panel::-webkit-scrollbar-thumb:hover {
+    background: #00cc6a;
+}

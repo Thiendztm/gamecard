@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board Card Game</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="main_menu.css">
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./client.js" defer></script>
+    <script src="./main_menu.js" defer></script>
+</head>
+<body>
+
+    <div id="logo-menu">
+        <img src="/DesignHud/5.png" width="900" height="700" alt="Logo" id="logo-img">
+    </div>
+
+    <div id="main-menu">
+        <div class="menu-button room-btn">
+            <span class="button-text">Tạo phòng</span>
+        </div>
+        <div class="menu-button deck-btn">
+            <span class="button-text">Xây dựng deck</span>
+        </div>
+        <div class="menu-button my-profile-btn">
+            <span class="button-text">Xem hồ sơ</span>
+        </div>
+        <div class="menu-button exit-btn">
+            <span class="button-text">Thoát</span>
+        </div>
+        <div class="menu-button settings-btn">
+            <span class="button-text">Cài đặt</span>
+        </div>
+    </div>
+</body>
+</html>
