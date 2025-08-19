@@ -1,0 +1,233 @@
+* {
+    font-family: "montserrat";
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    background-image: url(/DesignHud/background4.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+}
+
+
+#login, #Register, #Forgot-Password {
+    position: fixed;
+    left: 30px;
+    bottom: 40px;
+    color: rgb(218, 218, 233);
+    width: 350px;
+    height: 240px;
+    padding: 30px 30px 20px 30px;
+    background: rgba(200, 200, 200, 0.25);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    border: 2px solid #aaa;
+    backdrop-filter: blur(1px);
+    z-index: 10;
+}
+
+#login span:not(.username-lb,.password-lb, .email-lb),
+#Register span:not(.username-lb,.password-lb, .email-lb),
+#Forgot-Password span:not(.username-lb,.password-lb, .email-lb) {
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+.username-lb, .password-lb, .email-lb {
+    font-weight: 600;   
+    margin-bottom: 8px;
+
+}
+
+
+#login input[type="text"],
+#login input[type="password"],
+#Register input[type="text"],
+#Register input[type="password"],
+#Register input[type="email"],
+#Forgot-Password input[type="text"] {
+    padding: 6px 10px;
+    font-size: 16px;
+}
+
+#login .login-btn {
+    margin-left: auto;
+    display: block;
+    margin-right: 25px;
+}
+
+.username-lb, .password-lb {
+    width: 40%;
+    display: inline-block;
+}
+.username-txt, .password-txt {
+    width: 150px;
+    height: 25px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+.username-row, .password-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+
+.reg-fg-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}   
+
+.forgot-password-lb {
+    margin-left: auto;
+    margin-right: 20px;
+}
+
+.reg-fg-row > * {
+    display: unset;
+}
+
+.back-reg-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#login input[type="submit"],
+#Register input[type="submit"],
+#Forgot-Password input[type="submit"] {
+    width: 100px;
+    padding: 8px 0;
+    border-radius: 8px;
+    border: 2px;
+    font-size: 15px;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+
+#login input[type="submit"] {
+    background-color: #dbcdcd;
+}
+
+#login .register-lb,
+#login .forgot-password-lb,
+#Register .back-btn,
+#Forgot-Password .back-btn {
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+
+.wrapper {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    margin: 30px;
+    margin-bottom: 40px;
+    width: 420px;
+    color: #ffff;
+}
+
+.remember-row {
+    display: flex;
+    align-items: center;
+    border-radius: 6px;
+    padding: 4px 10px;
+    width: fit-content;
+}
+.remember-cb {
+    width: 15px;
+    height: 15px;
+    margin-right: 8px;
+    accent-color: white
+}
+.remember-lb {
+    
+    font-size: 13px;
+ 
+    font-weight: 500;
+    margin: 0;
+}
+
+#Register input[type="text"],
+#Register input[type="password"],
+#Register input[type="email"],
+#Forgot-Password input[type="text"] {
+    width: 150px;
+    height: 25px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+#Register .register-btn {
+    margin-left: auto;
+    display: block;
+    margin-right: 25px;
+    background-color: #dbcdcd;
+    width: 100px;
+    padding: 8px 0;
+    border-radius: 8px;
+    border: 2px;
+    font-size: 15px;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+
+#Register .username-row, #Register .password-row, #Register .email-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+#Register .username-lb, #Register .password-lb, #Register .email-lb {
+    width: 40%;
+    display: inline-block;
+}
+
+#Forgot-Password .email-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+    margin-top: 15px;
+}
+
+#Forgot-Password .email-lb {
+    width: 40%;
+    display: inline-block;
+}
+
+#Forgot-Password .back-reset-row {
+    display: flex;
+    align-items: center;
+    gap: 85px;
+}
+
+
+#logo-page {
+    position: fixed;
+    top: 10px;
+    left: -100px;
+    z-index: 5;
+}
+
+#logo-page img {
+    display: block;
+    width: 700px;
+    height:  auto;
+}
+

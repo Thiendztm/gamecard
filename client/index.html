@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board Card Game</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./client.js" defer></script>
+</head>
+<body>
+    <div id="logo-page">
+        <img src="/DesignHud/5.png" width="900" height="700" alt="Logo" id="logo-img">
+    </div>
+
+    <div id="login-box">
+        <div id="login">
+            <div class="background"></div>
+            <div class="username-row">
+                <span class="username-lb">TÀI KHOẢN</span>
+                <input class="username-txt" type="text" maxlength="15">
+            </div>
+            <div class="password-row">
+                <span class="password-lb">MẬT KHẨU</span>
+                <input class="password-txt" type="password" maxlength="15">
+            </div>
+            <div class="remember-row">
+                <input class="remember-cb" type="checkbox" checked>
+                <span class="remember-lb">Lưu lần đăng nhập kế tiếp</span>
+            </div>
+            <input class="login-btn" type="submit" value="Đăng nhập">
+            <div class="reg-fg-row">
+                <span class="register-lb">Đăng kí</span>
+                <span class="forgot-password-lb">Quên mật khẩu</span>
+            </div>
+            
+        </div>
+
+        <div id="Register">
+            <div class="background"></div>
+            <div class="username-row">
+                <span class="username-lb">TÀI KHOẢN</span>
+                <input class="username-txt" type="text" maxlength="15">
+            </div>
+            <div class="password-row">
+                <span class="password-lb">MẬT KHẨU</span>
+                <input class="password-txt" type="password" maxlength="15">
+            </div>
+            <div class="email-row">
+                <span class="email-lb">Email</span>
+                <input class="email-txt" type="text">
+            </div>
+            <div class="back-reg-row">
+                <span class="back-btn">Quay lại</span>
+                <input class="register-btn" type="submit" value="Đăng kí">
+            </div>
+         </div>
+
+          <div id="Forgot-Password">
+            <div class="background"></div>
+            <span class="desc-txt">Nhập email mà bạn từng đăng kí. Sẽ có một e-mail gửi về với link để reset lại mật khẩu của bạn</span>
+            <div class="email-row">
+                <span class="email-lb">Email</span>
+                <input class="email-txt" type="text">
+            </div>
+            <div class="back-reset-row">
+                <span class="back-btn">Quay lại</span>
+                <input class="reset-password-btn" type="submit" value="Reset">
+            </div>
+        </div>
+
+        <div id="logged-in">
+            <div id="background"></div>
+            <span id="logged-in-as-lb">Đã đăng nhập bởi:</span>
+            <span id="username-txt"></span>
+            <span class="logout-btn">Đăng xuất</span>
+            <span class="switch-account-btn">Đổi tài khoản</span>
+        </div>
+    </div>
+
+    <div id="main-menu" style="display: none;">
+        <div id="menu-btn" class="room-btn">
+            <div id="content"></div>
+            <span>Phòng chơi</span>
+        </div>
+        <div id="menu-btn" class="profile-btn">
+            <div id="content"></div>
+            <span>Profile</span>
+        </div>
+        <div id="menu-btn" class="setting-btn">
+            <div id="content"></div>
+            <span>Cài đặt</span>
+        </div>
+        <div id="menu-btn" class="friend-btn">
+            <div id="content"></div>
+            <span>bạn bè</span>
+        </div>
+        <div id="content" class="deck-btn">
+            <div id="content"></div>
+            <span>Deck</span>
+        </div>
+    </div>
+
+       
+
+</body>
+</html>
