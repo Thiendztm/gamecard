@@ -13,6 +13,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use('/DesignHud', express.static(path.join(__dirname, 'DesignHud')));
 
+// Game rooms storage
+const gameRooms = new Map();
+const playerRooms = new Map(); // Track which room each player is in
+const playerSockets = new Map(); // Track socket ID for each player
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(express.static(path.join(__dirname, 'client')));
+app.use('/DesignHud', express.static(path.join(__dirname, 'DesignHud')));
+
 let emailConfig;
 try {
     emailConfig = require('./email-config.js');
@@ -203,11 +214,305 @@ app.post('/api/login', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('A user connected');
+    console.log('A user connected:', socket.id);
+    
+    // Send current room list to new connection
+    socket.emit('roomList', Array.from(gameRooms.values()));
+    
+    // Handle room creation
+    socket.on('createRoom', (roomData) => {
+        try {
+            console.log('Creating room:', roomData);
+            gameRooms.set(roomData.id, roomData);
+            playerRooms.set(socket.id, roomData.id);
+            
+            // Track creator's socket
+            if (roomData.players && roomData.players.length > 0) {
+                playerSockets.set(roomData.players[0].id, socket.id);
+            }
+            
+            // Join socket room
+            socket.join(roomData.id);
+            
+            // Broadcast new room to all clients
+            io.emit('roomCreated', roomData);
+            
+            // Send room joined confirmation to creator
+            socket.emit('roomJoined', roomData);
+            
+            console.log(`Room ${roomData.id} created by ${roomData.host}`);
+        } catch (error) {
+            console.error('Error creating room:', error);
+            socket.emit('error', { message: 'Không thể tạo phòng' });
+        }
+    });
+    
+    // Handle joining room
+    socket.on('joinRoom', (data) => {
+        try {
+            const { roomId, player, password } = data;
+            const room = gameRooms.get(roomId);
+            
+            if (!room) {
+                socket.emit('error', { message: 'Phòng không tồn tại' });
+                return;
+            }
+            
+            // Check password if room is locked
+            if (room.status === 'Khóa') {
+                console.log('Room is locked, checking password...');
+                console.log('Room password:', room.password);
+                console.log('Entered password:', password);
+                console.log('Password match:', room.password === password);
+                
+                if (!room.password || room.password.trim() === '') {
+                    // Room is locked but has no password set - shouldn't happen but handle it
+                    socket.emit('error', { message: 'Phòng này đã bị khóa' });
+                    return;
+                }
+                
+                if (!password || password !== room.password) {
+                    socket.emit('error', { message: 'Mật khẩu không đúng' });
+                    return;
+                }
+            }
+            
+            // Check if room is full
+            if (room.players.length >= room.maxPlayers) {
+                socket.emit('error', { message: 'Phòng đã đầy' });
+                return;
+            }
+            
+            // Check if player already in room
+            const existingPlayer = room.players.find(p => p.id === player.id);
+            if (existingPlayer) {
+                socket.emit('error', { message: 'Bạn đã ở trong phòng này' });
+                return;
+            }
+            
+            // Add player to room
+            room.players.push(player);
+            playerRooms.set(socket.id, roomId);
+            playerSockets.set(player.id, socket.id);
+            
+            // Join socket room
+            socket.join(roomId);
+            
+            // Update room data
+            gameRooms.set(roomId, room);
+            
+            // Notify all players in room
+            io.to(roomId).emit('playerJoined', {
+                roomId: roomId,
+                player: player,
+                players: room.players
+            });
+            
+            // Send room data to joining player
+            socket.emit('roomJoined', room);
+            
+            // Update room list for all clients
+            io.emit('roomList', Array.from(gameRooms.values()));
+            
+            console.log(`Player ${player.name} joined room ${roomId}`);
+        } catch (error) {
+            console.error('Error joining room:', error);
+            socket.emit('error', { message: 'Không thể vào phòng' });
+        }
+    });
+    
+    // Handle leaving room
+    socket.on('leaveRoom', (data) => {
+        try {
+            const { roomId, playerId } = data;
+            const room = gameRooms.get(roomId);
+            
+            if (!room) return;
+            
+            // Remove player from room
+            room.players = room.players.filter(p => p.id !== playerId);
+            playerRooms.delete(socket.id);
+            playerSockets.delete(playerId);
+            
+            // Leave socket room
+            socket.leave(roomId);
+            
+            // If room is empty, delete it
+            if (room.players.length === 0) {
+                gameRooms.delete(roomId);
+                console.log(`Room ${roomId} deleted (empty)`);
+            } else {
+                // Update room data
+                gameRooms.set(roomId, room);
+                
+                // Notify remaining players
+                io.to(roomId).emit('playerLeft', {
+                    roomId: roomId,
+                    playerId: playerId,
+                    players: room.players
+                });
+            }
+            
+            // Update room list for all clients
+            io.emit('roomList', Array.from(gameRooms.values()));
+            
+            console.log(`Player ${playerId} left room ${roomId}`);
+        } catch (error) {
+            console.error('Error leaving room:', error);
+        }
+    });
+    
+    // Handle player ready status
+    socket.on('playerReady', (data) => {
+        try {
+            const { roomId, playerId, ready } = data;
+            const room = gameRooms.get(roomId);
+            
+            if (!room) return;
+            
+            const player = room.players.find(p => p.id === playerId);
+            if (player) {
+                player.ready = ready;
+                gameRooms.set(roomId, room);
+                
+                // Notify all players in room
+                io.to(roomId).emit('playerReady', {
+                    roomId: roomId,
+                    playerId: playerId,
+                    ready: ready
+                });
+                
+                console.log(`Player ${playerId} ready status: ${ready} in room ${roomId}`);
+            }
+        } catch (error) {
+            console.error('Error updating ready status:', error);
+        }
+    });
+    
+    // Handle game start
+    socket.on('startGame', (data) => {
+        try {
+            const { roomId } = data;
+            const room = gameRooms.get(roomId);
+            
+            if (!room) return;
+            
+            // Check if all players are ready
+            if (room.players.length === room.maxPlayers && room.players.every(p => p.ready)) {
+                // Start game for all players in room
+                io.to(roomId).emit('gameStart', {
+                    roomId: roomId,
+                    players: room.players
+                });
+                
+                console.log(`Game started in room ${roomId}`);
+                
+                // Remove room after game starts
+                gameRooms.delete(roomId);
+                
+                // Update room list
+                io.emit('roomList', Array.from(gameRooms.values()));
+            }
+        } catch (error) {
+            console.error('Error starting game:', error);
+        }
+    });
+    
+    // Handle getting room list
+    socket.on('getRoomList', () => {
+        // Clean up empty rooms and disconnected players before sending list
+        cleanupRooms();
+        socket.emit('roomList', Array.from(gameRooms.values()));
+    });
+    
+    // Handle disconnect
     socket.on('disconnect', () => {
-        console.log('A user disconnected');
+        console.log('User disconnected:', socket.id);
+        
+        // Find player by socket ID and remove from room
+        let disconnectedPlayerId = null;
+        for (const [playerId, socketId] of playerSockets.entries()) {
+            if (socketId === socket.id) {
+                disconnectedPlayerId = playerId;
+                break;
+            }
+        }
+        
+        if (disconnectedPlayerId) {
+            const roomId = playerRooms.get(socket.id);
+            if (roomId) {
+                const room = gameRooms.get(roomId);
+                if (room) {
+                    // Remove disconnected player from room
+                    room.players = room.players.filter(p => p.id !== disconnectedPlayerId);
+                    
+                    console.log(`Player ${disconnectedPlayerId} disconnected from room ${roomId}`);
+                    
+                    // If room is empty, delete it
+                    if (room.players.length === 0) {
+                        gameRooms.delete(roomId);
+                        console.log(`Room ${roomId} deleted (empty after disconnect)`);
+                    } else {
+                        // Update room data
+                        gameRooms.set(roomId, room);
+                        
+                        // Notify remaining players
+                        io.to(roomId).emit('playerLeft', {
+                            roomId: roomId,
+                            playerId: disconnectedPlayerId,
+                            players: room.players
+                        });
+                    }
+                    
+                    // Update room list for all clients
+                    io.emit('roomList', Array.from(gameRooms.values()));
+                }
+            }
+            
+            // Clean up tracking maps
+            playerSockets.delete(disconnectedPlayerId);
+        }
+        
+        playerRooms.delete(socket.id);
     });
 });
+
+// Helper function to clean up empty rooms and invalid players
+function cleanupRooms() {
+    const roomsToDelete = [];
+    
+    for (const [roomId, room] of gameRooms.entries()) {
+        // Remove players whose sockets are no longer connected
+        const validPlayers = room.players.filter(player => {
+            const socketId = playerSockets.get(player.id);
+            return socketId && io.sockets.sockets.has(socketId);
+        });
+        
+        if (validPlayers.length !== room.players.length) {
+            console.log(`Cleaned up ${room.players.length - validPlayers.length} disconnected players from room ${roomId}`);
+            room.players = validPlayers;
+        }
+        
+        // Mark empty rooms for deletion
+        if (room.players.length === 0) {
+            roomsToDelete.push(roomId);
+        } else {
+            // Update room with cleaned players
+            gameRooms.set(roomId, room);
+        }
+    }
+    
+    // Delete empty rooms
+    roomsToDelete.forEach(roomId => {
+        gameRooms.delete(roomId);
+        console.log(`Cleaned up empty room: ${roomId}`);
+    });
+    
+    if (roomsToDelete.length > 0) {
+        // Broadcast updated room list
+        io.emit('roomList', Array.from(gameRooms.values()));
+    }
+}
 
 server.listen(4000, () => {
     console.log('Listening on port 4000');

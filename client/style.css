@@ -12,6 +12,33 @@ body {
     background-size: cover;
     background-attachment: fixed;
     background-position: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Prevent all images from being selected or dragged */
+img {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    -webkit-touch-callout: none;
+    pointer-events: none;
+}
+
+/* Allow interaction for buttons and clickable elements */
+button, input[type="button"], input[type="submit"], [onclick], .clickable {
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 
@@ -56,6 +83,11 @@ body {
 #Forgot-Password input[type="text"] {
     padding: 6px 10px;
     font-size: 16px;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    pointer-events: auto;
 }
 
 #login .login-btn {
@@ -142,6 +174,11 @@ body {
     cursor: pointer;
     font-size: 15px;
     margin-bottom: 8px;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: auto;
 }
 
 
@@ -255,6 +292,7 @@ body {
     display: block;
     width: 700px;
     height:  auto;
+    user-select: none;
 }
 
 #Verification .verification-info {
@@ -474,7 +512,6 @@ body {
     margin-top: 5px;
 }
 
-/* Scrollbar styling for panel */
 #game-info-panel::-webkit-scrollbar {
     width: 8px;
 }
