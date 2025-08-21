@@ -1,9 +1,14 @@
 
+<<<<<<< HEAD
 const DEBUG = false; // Set to false in production
+=======
+const DEBUG = false;
+>>>>>>> 6b7f29c (update5)
 const debug = DEBUG ? console.log : () => {};
 
 debug('Main menu loaded');
 
+<<<<<<< HEAD
 // Game rooms storage
 let gameRooms = [];
 let currentRoom = null;
@@ -19,23 +24,43 @@ function initializeSocket() {
     
     socket.on('error', (data) => {
         console.log('Server error:', data);
+=======
+let gameRooms = [];
+let currentRoom = null;
+
+function initializeSocket() {
+    
+    socket.on('connect', () => {
+    });
+    
+    socket.on('error', (data) => {
+>>>>>>> 6b7f29c (update5)
         alert(data.message || 'Có lỗi xảy ra');
     });
     
     socket.on('roomCreated', (roomData) => {
+<<<<<<< HEAD
         console.log('Room created:', roomData);
+=======
+>>>>>>> 6b7f29c (update5)
         gameRooms.push(roomData);
         updateRoomList();
     });
     
     socket.on('roomJoined', (roomData) => {
+<<<<<<< HEAD
         console.log('Joined room:', roomData);
+=======
+>>>>>>> 6b7f29c (update5)
         currentRoom = roomData;
         openWaitingRoom(roomData);
     });
     
     socket.on('playerJoined', (data) => {
+<<<<<<< HEAD
         console.log('Player joined:', data);
+=======
+>>>>>>> 6b7f29c (update5)
         if (currentRoom && currentRoom.id === data.roomId) {
             currentRoom.players = data.players;
             updateWaitingRoom();
@@ -44,7 +69,10 @@ function initializeSocket() {
     });
     
     socket.on('playerLeft', (data) => {
+<<<<<<< HEAD
         console.log('Player left:', data);
+=======
+>>>>>>> 6b7f29c (update5)
         if (currentRoom && currentRoom.id === data.roomId) {
             currentRoom.players = data.players;
             updateWaitingRoom();
@@ -53,19 +81,28 @@ function initializeSocket() {
     });
     
     socket.on('playerReady', (data) => {
+<<<<<<< HEAD
         console.log('Player ready status:', data);
+=======
+>>>>>>> 6b7f29c (update5)
         if (currentRoom && currentRoom.id === data.roomId) {
             updatePlayerStatus(data.playerId, data.ready);
         }
     });
     
     socket.on('gameStart', (data) => {
+<<<<<<< HEAD
         console.log('Game starting:', data);
+=======
+>>>>>>> 6b7f29c (update5)
         window.location.href = 'gamePlay.html';
     });
     
     socket.on('roomList', (rooms) => {
+<<<<<<< HEAD
         console.log('Room list updated:', rooms);
+=======
+>>>>>>> 6b7f29c (update5)
         gameRooms = rooms;
         updateRoomList();
     });
@@ -74,29 +111,33 @@ function initializeSocket() {
 window.onload = function() {
     const user = sessionStorage.getItem('user');
     if (!user) {
-        console.log('No user found, redirecting to login');
         window.location.href = 'index.html';
         return;
     }
     
     const userData = JSON.parse(user);
-    console.log('Welcome to main menu:', userData.username);
-
     const usernameElement = document.getElementById('username-display');
     if (usernameElement) {
         usernameElement.textContent = userData.username;
     }
     
+<<<<<<< HEAD
     // Initialize socket connection
     initializeSocket();
     
+=======
+    initializeSocket();
+    
+    // Emit userLogin event to register the user as online
+    setTimeout(() => {
+        socket.emit('userLogin', userData.username);
+    }, 100); // Small delay to ensure socket is connected
+    
+>>>>>>> 6b7f29c (update5)
     const logoMenu = document.getElementById('logo-menu');
     if (logoMenu) {
-        logoMenu.classList.add('transition-animation');
-        console.log('Logo transition animation triggered');
-        
+        logoMenu.classList.add('transition-animation');        
         setTimeout(() => {
-            console.log('Starting menu buttons animation');
             const menuButtons = document.querySelectorAll('.menu-button');
             menuButtons.forEach(button => {
                 button.classList.add('animate');
@@ -110,12 +151,18 @@ function logout() {
     window.location.href = 'index.html';
 }
 
+<<<<<<< HEAD
 // Room panel functions
+=======
+>>>>>>> 6b7f29c (update5)
 function openRoomPanel() {
     const roomPanel = document.getElementById('room-creation-panel');
     if (roomPanel) {
         roomPanel.classList.remove('hidden');
+<<<<<<< HEAD
         console.log('Room creation panel opened');
+=======
+>>>>>>> 6b7f29c (update5)
     }
 }
 
@@ -123,18 +170,27 @@ function closeRoomPanel() {
     const roomPanel = document.getElementById('room-creation-panel');
     if (roomPanel) {
         roomPanel.classList.add('hidden');
+<<<<<<< HEAD
         console.log('Room creation panel closed');
     }
 }
 
 // Room browser functions
+=======
+    }
+}
+
+>>>>>>> 6b7f29c (update5)
 function openRoomBrowser() {
     const browserPanel = document.getElementById('room-browser-panel');
     if (browserPanel) {
         browserPanel.classList.remove('hidden');
+<<<<<<< HEAD
         console.log('Room browser opened');
         
         // Set current username
+=======
+>>>>>>> 6b7f29c (update5)
         const user = JSON.parse(sessionStorage.getItem('user') || '{}');
         const usernameElement = document.getElementById('browser-username');
         if (usernameElement && user.username) {
@@ -149,12 +205,18 @@ function closeRoomBrowser() {
     const browserPanel = document.getElementById('room-browser-panel');
     if (browserPanel) {
         browserPanel.classList.add('hidden');
+<<<<<<< HEAD
         console.log('Room browser closed');
+=======
+>>>>>>> 6b7f29c (update5)
     }
 }
 
 function refreshRoomList() {
+<<<<<<< HEAD
     console.log('Refreshing room list and cleaning up disconnected players...');
+=======
+>>>>>>> 6b7f29c (update5)
     if (socket) {
         socket.emit('getRoomList');
     }
@@ -204,7 +266,11 @@ function updateRoomList() {
     });
     
     table.appendChild(tbody);
+<<<<<<< HEAD
     console.log(`Displayed ${gameRooms.length} rooms`);
+=======
+    
+>>>>>>> 6b7f29c (update5)
 }
 
 function joinSelectedRoom() {
@@ -341,7 +407,10 @@ function openWaitingRoom(roomData) {
         document.getElementById('room-type-display').textContent = roomData.type;
         
         updateWaitingRoom();
+<<<<<<< HEAD
         console.log('Waiting room opened for:', roomData.id);
+=======
+>>>>>>> 6b7f29c (update5)
     }
 }
 
@@ -360,7 +429,46 @@ function closeWaitingRoom() {
         }
         
         currentRoom = null;
+<<<<<<< HEAD
         console.log('Waiting room closed');
+=======
+    }
+}
+
+// Function to generate avatar for user
+async function generateAvatar(username) {
+    // Use current user's selected avatar if it's the current user
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    if (username === user.username && currentUserAvatar) {
+        return currentUserAvatar;
+    }
+    
+    // Fetch avatar for other users
+    return await fetchUserAvatar(username);
+}
+
+// Function to set player avatar
+async function setPlayerAvatar(playerIndex, username) {
+    const avatarImg = document.getElementById(`player${playerIndex}-avatar-img`);
+    const placeholder = document.getElementById(`player${playerIndex}-placeholder`);
+    
+    if (username && username !== 'Đang chờ...') {
+        const avatarUrl = await generateAvatar(username);
+        avatarImg.src = avatarUrl;
+        avatarImg.style.display = 'block';
+        placeholder.style.display = 'none';
+        
+        // Fallback to placeholder if image fails to load
+        avatarImg.onerror = function() {
+            avatarImg.style.display = 'none';
+            placeholder.style.display = 'block';
+            placeholder.textContent = username.substring(0, 2).toUpperCase();
+        };
+    } else {
+        avatarImg.style.display = 'none';
+        placeholder.style.display = 'block';
+        placeholder.textContent = `P${playerIndex}`;
+>>>>>>> 6b7f29c (update5)
     }
 }
 
@@ -369,6 +477,15 @@ function updateWaitingRoom() {
     
     const players = currentRoom.players || [];
     
+<<<<<<< HEAD
+=======
+    // Update player count display
+    const playerCountDisplay = document.getElementById('player-count-display');
+    if (playerCountDisplay) {
+        playerCountDisplay.textContent = `Người chơi (${players.length}/${currentRoom.maxPlayers || 2})`;
+    }
+    
+>>>>>>> 6b7f29c (update5)
     // Update player slots
     for (let i = 0; i < 2; i++) {
         const player = players[i];
@@ -379,10 +496,22 @@ function updateWaitingRoom() {
             nameElement.textContent = player.name;
             statusElement.textContent = player.ready ? 'Sẵn sàng' : 'Chưa sẵn sàng';
             statusElement.className = player.ready ? 'player-status ready' : 'player-status';
+<<<<<<< HEAD
+=======
+            
+            // Set player avatar
+            setPlayerAvatar(i + 1, player.name);
+>>>>>>> 6b7f29c (update5)
         } else {
             nameElement.textContent = 'Đang chờ...';
             statusElement.textContent = 'Chưa sẵn sàng';
             statusElement.className = 'player-status';
+<<<<<<< HEAD
+=======
+            
+            // Reset avatar to placeholder
+            setPlayerAvatar(i + 1, null);
+>>>>>>> 6b7f29c (update5)
         }
     }
     
@@ -438,6 +567,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const myProfileBtn = document.querySelector('.my-profile-btn');
     const exitBtn = document.querySelector('.exit-btn');
     const settingsBtn = document.querySelector('.settings-btn');
+    const closeRoomBtn = document.querySelector('.close-room-panel');
+    const hostDuelBtn = document.querySelector('.host-duel-btn');
+    const roomPanelOverlay = document.querySelector('.room-panel-overlay');
+    const closeWaitingRoomBtn = document.querySelector('.close-waiting-room');
+    const leaveRoomBtn = document.querySelector('.leave-room-btn');
+    const readyBtn = document.getElementById('ready-btn');
+    const waitingRoomOverlay = document.querySelector('.waiting-room-overlay');
+    const refreshRoomsBtn = document.querySelector('.refresh-rooms-btn');
+    const joinRoomBtn = document.querySelector('.join-room-btn');
+    const cancelBrowserBtn = document.querySelector('.cancel-browser-btn');
+    const roomBrowserOverlay = document.querySelector('.room-browser-overlay');
+    const hostRoomBtn = document.querySelector('.host-room-btn');
     
     // Room creation panel elements
     const closeRoomBtn = document.querySelector('.close-room-panel');
@@ -460,36 +601,413 @@ document.addEventListener('DOMContentLoaded', function() {
     // Menu button handlers
     if (roomBtn) {
         roomBtn.onclick = function() {
+<<<<<<< HEAD
             console.log('Tạo phòng clicked from main menu - opening room browser');
+=======
+>>>>>>> 6b7f29c (update5)
             openRoomBrowser();
         };
     }
     
     if (deckBtn) {
         deckBtn.onclick = function() {
+<<<<<<< HEAD
             console.log('Xây dựng deck clicked');
             // TODO: Add deck builder functionality
+=======
+>>>>>>> 6b7f29c (update5)
         };
     }
     
     if (myProfileBtn) {
         myProfileBtn.onclick = function() {
+<<<<<<< HEAD
             console.log('Xem hồ sơ clicked');
             // TODO: Add profile functionality
+=======
+            openProfile(); // Open current user's profile
+>>>>>>> 6b7f29c (update5)
         };
     }
     
     if (exitBtn) {
         exitBtn.onclick = function() {
+<<<<<<< HEAD
             console.log('Thoát clicked');
+=======
+>>>>>>> 6b7f29c (update5)
             logout();
         };
     }
     
     if (settingsBtn) {
         settingsBtn.onclick = function() {
+<<<<<<< HEAD
             console.log('Cài đặt clicked');
             // TODO: Add settings functionality
+=======
+        };
+    }
+    
+    if (closeRoomBtn) {
+        closeRoomBtn.onclick = closeRoomPanel;
+    }
+    
+    if (hostDuelBtn) {
+        hostDuelBtn.onclick = function(e) {
+            e.preventDefault();
+            
+            if (hostDuelBtn.disabled) return;
+            
+            hostDuelBtn.disabled = true;
+            hostDuelBtn.textContent = 'Đang tạo...';
+            
+            setTimeout(() => {
+                createRoom();
+                setTimeout(() => {
+                    hostDuelBtn.disabled = false;
+                    hostDuelBtn.textContent = 'Tạo phòng';
+                }, 500);
+            }, 50);
+        };
+    }
+    
+    if (roomPanelOverlay) {
+        roomPanelOverlay.onclick = closeRoomPanel;
+    }
+    
+    if (closeWaitingRoomBtn) {
+        closeWaitingRoomBtn.onclick = closeWaitingRoom;
+    }
+    
+    if (leaveRoomBtn) {
+        leaveRoomBtn.onclick = closeWaitingRoom;
+    }
+    
+    if (readyBtn) {
+        readyBtn.onclick = toggleReady;
+    }
+    
+    if (waitingRoomOverlay) {
+        waitingRoomOverlay.onclick = closeWaitingRoom;
+    }
+    
+    if (refreshRoomsBtn) {
+        refreshRoomsBtn.onclick = refreshRoomList;
+    }
+    
+    if (joinRoomBtn) {
+        joinRoomBtn.onclick = joinSelectedRoom;
+    }
+    
+    if (cancelBrowserBtn) {
+        cancelBrowserBtn.onclick = closeRoomBrowser;
+    }
+    
+    if (roomBrowserOverlay) {
+        roomBrowserOverlay.onclick = closeRoomBrowser;
+    }
+    
+    if (hostRoomBtn) {
+        hostRoomBtn.onclick = function() {
+            openRoomPanel();
+        };
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.room-row')) {
+            document.querySelectorAll('.room-row').forEach(row => {
+                row.classList.remove('selected');
+            });
+            
+            e.target.closest('.room-row').classList.add('selected');
+
+            if (joinRoomBtn) {
+                joinRoomBtn.disabled = false;
+            }
+        }
+    });
+    
+    const searchInput = document.querySelector('.room-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.room-row');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    const roomInputs = document.querySelectorAll('.duel-note-input, .duel-password-input');
+    roomInputs.forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                createRoom();
+            }
+        });
+    });
+    
+    const passwordInput = document.querySelector('.duel-password-input');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            const hasPassword = this.value.trim().length > 0;
+            const radioButtons = document.querySelectorAll('input[name="duel-type"]');
+            
+            radioButtons.forEach(radio => {
+                radio.disabled = false;
+                
+                if (hasPassword) {
+                    radio.checked = (radio.value === 'Khóa');
+                } else {
+                    radio.checked = (radio.value === 'Công khai');
+                }
+
+                radio.disabled = true;
+            });
+            
+            debug('Password input changed, auto-selected:', hasPassword ? 'Khóa' : 'Công khai');
+        });
+
+        passwordInput.addEventListener('paste', function() {
+            setTimeout(() => {
+                const hasPassword = this.value.trim().length > 0;
+                const radioButtons = document.querySelectorAll('input[name="duel-type"]');
+                
+                radioButtons.forEach(radio => {
+                    radio.disabled = false;
+                    
+                    if (hasPassword) {
+                        radio.checked = (radio.value === 'Khóa');
+                    } else {
+                        radio.checked = (radio.value === 'Công khai');
+                    }
+
+                    radio.disabled = true;
+                });
+                
+                debug('Password pasted, auto-selected:', hasPassword ? 'Khóa' : 'Công khai');
+            }, 10);
+        });
+    }
+});
+
+// Profile viewer functions
+function openProfile(username = null) {
+    const profileViewer = document.getElementById('profile-viewer');
+    if (profileViewer) {
+        profileViewer.style.display = 'flex';
+        
+        // Add avatar click handler when profile opens
+        setTimeout(() => {
+            const profileAvatar = document.getElementById('profile-avatar-img');
+            const avatarContainer = document.querySelector('.avatar-container');
+            
+            if (profileAvatar) {
+                profileAvatar.onclick = openAvatarSelector;
+                console.log('Profile avatar click handler added in openProfile'); // Debug log
+            }
+            
+            // Backup: Add click to container as well
+            if (avatarContainer) {
+                avatarContainer.onclick = openAvatarSelector;
+                avatarContainer.style.cursor = 'pointer';
+                console.log('Avatar container click handler added'); // Debug log
+            }
+        }, 100); // Small delay to ensure DOM is ready
+        
+        if (username) {
+            loadUserProfile(username);
+        } else {
+            // Load current user's profile
+            const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+            if (user.username) {
+                loadUserProfile(user.username);
+            }
+        }
+    }
+}
+
+function closeProfile() {
+    const profileViewer = document.getElementById('profile-viewer');
+    if (profileViewer) {
+        profileViewer.style.display = 'none';
+    }
+}
+
+// Debounce function để tránh spam API
+let searchTimeout;
+
+async function searchUserProfile() {
+    // Clear previous timeout
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // Debounce 500ms
+    searchTimeout = setTimeout(async () => {
+        const searchInput = document.getElementById('profile-search-input');
+        const username = searchInput.value.trim();
+        
+        if (!username) {
+            alert('Vui lòng nhập tên người dùng!');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/user-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username })
+            });
+
+            const data = await response.json();
+
+        if (data.success) {
+            loadUserProfile(username, data.user);
+        } else {
+            alert(data.message || 'Không tìm thấy người dùng!');
+        }
+    } catch (error) {
+        console.error('Search profile error:', error);
+        alert('Lỗi khi tìm kiếm người dùng!');
+    }
+    }, 500); // Debounce delay
+}
+
+function loadUserProfile(username, userData = null) {
+    // Update username display
+    const usernameDisplay = document.getElementById('profile-username-text');
+    if (usernameDisplay) {
+        usernameDisplay.textContent = username;
+    }
+
+    if (userData) {
+        // Update status
+        const statusElement = document.getElementById('profile-status');
+        if (statusElement) {
+            statusElement.textContent = userData.isOnline ? 'Online' : 'Offline';
+            statusElement.style.color = userData.isOnline ? '#00ff88' : '#ff6b6b';
+        }
+
+        // Update last seen
+        const lastSeenElement = document.getElementById('profile-last-seen');
+        if (lastSeenElement) {
+            lastSeenElement.textContent = userData.isOnline ? 'Now' : formatDate(userData.lastSeen);
+        }
+
+        // Update registration date
+        const registeredElement = document.getElementById('profile-registered');
+        if (registeredElement) {
+            registeredElement.textContent = formatDate(userData.registeredAt);
+        }
+
+        // Update stats
+        updateProfileStats(userData.stats || {});
+    } else {
+        // Default values for current user
+        updateDefaultProfileInfo();
+    }
+
+    // Clear search input
+    const searchInput = document.getElementById('profile-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+}
+
+function updateProfileStats(stats) {
+    // AI stats
+    const aiWins = document.getElementById('ai-wins');
+    const aiLosses = document.getElementById('ai-losses');
+    const aiDraws = document.getElementById('ai-draws');
+
+    if (aiWins) aiWins.textContent = stats.aiWins || '0';
+    if (aiLosses) aiLosses.textContent = stats.aiLosses || '0';
+    if (aiDraws) aiDraws.textContent = stats.aiDraws || '0';
+
+    // Online stats
+    const onlineWins = document.getElementById('online-wins');
+    const onlineLosses = document.getElementById('online-losses');
+    const onlineDraws = document.getElementById('online-draws');
+
+    if (onlineWins) onlineWins.textContent = stats.onlineWins || '0';
+    if (onlineLosses) onlineLosses.textContent = stats.onlineLosses || '0';
+    if (onlineDraws) onlineDraws.textContent = stats.onlineDraws || '0';
+}
+
+function updateDefaultProfileInfo() {
+    // Set default online status for current user
+    const statusElement = document.getElementById('profile-status');
+    if (statusElement) {
+        statusElement.textContent = 'Online';
+        statusElement.style.color = '#00ff88';
+    }
+
+    const lastSeenElement = document.getElementById('profile-last-seen');
+    if (lastSeenElement) {
+        lastSeenElement.textContent = 'Now';
+    }
+
+    // Try to get registration date from session or use placeholder
+    const registeredElement = document.getElementById('profile-registered');
+    if (registeredElement) {
+        const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+        if (user.registeredAt) {
+            registeredElement.textContent = formatDate(user.registeredAt);
+        } else {
+            registeredElement.textContent = 'Unknown';
+        }
+    }
+
+    // Use default stats
+    updateProfileStats({});
+}
+
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+    } catch (error) {
+        return 'Unknown';
+    }
+}
+
+// Setup profile viewer event handlers
+document.addEventListener('DOMContentLoaded', function() {
+    const closeProfileBtn = document.getElementById('close-profile');
+    const searchProfileBtn = document.getElementById('search-profile-btn');
+    const profileSearchInput = document.getElementById('profile-search-input');
+
+    if (closeProfileBtn) {
+        closeProfileBtn.onclick = closeProfile;
+    }
+
+    if (searchProfileBtn) {
+        searchProfileBtn.onclick = searchUserProfile;
+    }
+
+    if (profileSearchInput) {
+        profileSearchInput.onkeypress = function(e) {
+            if (e.key === 'Enter') {
+                searchUserProfile();
+            }
+>>>>>>> 6b7f29c (update5)
         };
     }
     
@@ -664,4 +1182,160 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 10);
         });
     }
+});
+
+// Avatar Selector Functions
+let currentUserAvatar = '/DesignHud/reimu2.png'; // Default avatar
+let userAvatars = new Map(); // Cache for other users' avatars
+
+async function fetchUserAvatar(username) {
+    // Check cache first
+    if (userAvatars.has(username)) {
+        return userAvatars.get(username);
+    }
+    
+    try {
+        const response = await fetch(`/api/profile/${username}`);
+        const data = await response.json();
+        
+        if (data.success && data.profile.avatar) {
+            userAvatars.set(username, data.profile.avatar);
+            return data.profile.avatar;
+        }
+    } catch (error) {
+        console.error('Error fetching user avatar:', error);
+    }
+    
+    // Fallback to default
+    const defaultAvatar = '/DesignHud/reimu2.png';
+    userAvatars.set(username, defaultAvatar);
+    return defaultAvatar;
+}
+
+function openAvatarSelector() {
+    console.log('openAvatarSelector called'); // Debug log
+    const avatarSelector = document.getElementById('avatar-selector');
+    console.log('Avatar selector element:', avatarSelector); // Debug log
+    
+    if (avatarSelector) {
+        avatarSelector.style.display = 'flex';
+        console.log('Avatar selector displayed'); // Debug log
+        
+        // Mark current avatar as selected
+        const avatarOptions = document.querySelectorAll('.avatar-option');
+        avatarOptions.forEach(option => {
+            option.classList.remove('selected');
+            if (option.dataset.avatar === currentUserAvatar) {
+                option.classList.add('selected');
+            }
+        });
+    } else {
+        console.log('Avatar selector element not found!'); // Debug log
+    }
+}
+
+function closeAvatarSelector() {
+    const avatarSelector = document.getElementById('avatar-selector');
+    if (avatarSelector) {
+        avatarSelector.style.display = 'none';
+    }
+}
+
+async function selectAvatar(avatarPath) {
+    currentUserAvatar = avatarPath;
+    
+    // Update profile avatar
+    const profileAvatar = document.getElementById('profile-avatar-img');
+    if (profileAvatar) {
+        profileAvatar.src = avatarPath;
+    }
+    
+    // Save avatar to server
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    if (user.username) {
+        try {
+            await fetch('/api/update-avatar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    username: user.username, 
+                    avatar: avatarPath 
+                })
+            });
+            
+            // Update cache
+            userAvatars.set(user.username, avatarPath);
+            console.log('Avatar saved to server:', avatarPath);
+        } catch (error) {
+            console.error('Error saving avatar:', error);
+        }
+    }
+    
+    // Update current user's avatar in waiting room if they're in a room
+    if (currentRoom && user.username) {
+        const player = currentRoom.players.find(p => p.id === user.username);
+        if (player) {
+            const playerIndex = currentRoom.players.indexOf(player) + 1;
+            await setPlayerAvatar(playerIndex, user.username);
+        }
+    }
+    
+    // Store avatar preference in sessionStorage
+    sessionStorage.setItem('userAvatar', avatarPath);
+    
+    closeAvatarSelector();
+}
+
+// Initialize avatar selector event handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Load saved avatar preference
+    const savedAvatar = sessionStorage.getItem('userAvatar');
+    if (savedAvatar) {
+        currentUserAvatar = savedAvatar;
+        const profileAvatar = document.getElementById('profile-avatar-img');
+        if (profileAvatar) {
+            profileAvatar.src = savedAvatar;
+        }
+    }
+    
+    // Profile avatar click handler
+    const profileAvatar = document.getElementById('profile-avatar-img');
+    if (profileAvatar) {
+        profileAvatar.onclick = openAvatarSelector;
+        console.log('Profile avatar click handler added'); // Debug log
+    }
+    
+    // Close avatar selector on background click
+    const avatarSelectorBackground = document.querySelector('.avatar-selector-background');
+    if (avatarSelectorBackground) {
+        avatarSelectorBackground.onclick = closeAvatarSelector;
+    }
+    
+    // Prevent closing when clicking inside the container
+    const avatarSelectorContainer = document.querySelector('.avatar-selector-container');
+    if (avatarSelectorContainer) {
+        avatarSelectorContainer.onclick = function(e) {
+            e.stopPropagation(); // Ngăn event bubble lên background
+        };
+    }
+    
+    // Also allow clicking on the modal itself to close
+    const avatarSelector = document.getElementById('avatar-selector');
+    if (avatarSelector) {
+        avatarSelector.onclick = function(e) {
+            if (e.target === avatarSelector) {
+                closeAvatarSelector();
+            }
+        };
+    }
+    
+    // Avatar option click handlers
+    const avatarOptions = document.querySelectorAll('.avatar-option');
+    avatarOptions.forEach(option => {
+        option.onclick = function() {
+            selectAvatar(this.dataset.avatar);
+        };
+    });
 });

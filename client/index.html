@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="password-managers" content="disabled">
     <title>Board Card Game</title>
     <link rel="stylesheet" href="style.css">
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
@@ -41,11 +42,11 @@
             <div class="background"></div>
             <div class="username-row">
                 <span class="username-lb">TÀI KHOẢN</span>
-                <input class="username-txt" type="text" maxlength="15">
+                <input class="username-txt" type="text" maxlength="15" autocomplete="off" data-lpignore="true">
             </div>
             <div class="password-row">
                 <span class="password-lb">MẬT KHẨU</span>
-                <input class="password-txt" type="password" maxlength="15">
+                <input class="password-txt" type="password" maxlength="15" autocomplete="new-password" data-lpignore="true">
             </div>
             <div class="remember-row">
                 <input class="remember-cb" type="checkbox" checked>
@@ -63,11 +64,11 @@
             <div class="background"></div>
             <div class="username-row">
                 <span class="username-lb">TÀI KHOẢN</span>
-                <input class="username-txt" type="text" maxlength="15" required>
+                <input class="username-txt" type="text" maxlength="15" required autocomplete="off" data-lpignore="true">
             </div>
             <div class="password-row">
                 <span class="password-lb">MẬT KHẨU</span>
-                <input class="password-txt" type="password" maxlength="15" required>
+                <input class="password-txt" type="password" maxlength="15" required autocomplete="new-password" data-lpignore="true">
             </div>
             <div class="email-row">
                 <span class="email-lb">Email</span>

@@ -112,7 +112,20 @@ document.querySelector('.register-btn').onclick = async function(e) {
 			body: JSON.stringify({ username, password, email })
 		});
 
-		const data = await response.json();
+		// Check if response is JSON or HTML
+		const contentType = response.headers.get('content-type');
+		let data;
+		
+		if (contentType && contentType.includes('application/json')) {
+			data = await response.json();
+		} else {
+			// If it's HTML (rate limit page), treat as error
+			const text = await response.text();
+			data = { 
+				success: false, 
+				message: response.status === 429 ? 'Quá nhiều yêu cầu, vui lòng thử lại sau ít phút.' : 'Có lỗi xảy ra từ server.'
+			};
+		}
 
 		if (data.success) {
 			showMessage('Mã xác thực đã được gửi đến email của bạn!');
@@ -233,28 +246,33 @@ document.querySelector('.login-btn').onclick = async function(e) {
 	}
 };
 
-document.querySelector('.logout-btn').onclick = function() {
-	sessionStorage.removeItem('user');
-	window.location.href = 'index.html';
-};
 
-document.querySelector('.switch-account-btn').onclick = function() {
-	sessionStorage.removeItem('user');
-	window.location.href = 'index.html';
-};
 
 window.onload = function() {
-	console.log('Page loaded, checking user status...');
 	const user = sessionStorage.getItem('user');
 	console.log('User in storage:', user);
 	
 	if (user) {
-		console.log('User already logged in, redirecting to main menu');
 		window.location.href = 'main_menu.html';
 	} else {
-		console.log('No user found, showing login');
 		hideAllBoxes();
 		document.getElementById('login').style.display = 'block';
-		console.log('Login display set to block');
+	}
+	
+	// Setup button handlers after DOM is loaded
+	const logoutBtn = document.querySelector('.logout-btn');
+	if (logoutBtn) {
+		logoutBtn.onclick = function() {
+			sessionStorage.removeItem('user');
+			window.location.href = 'index.html';
+		};
+	}
+
+	const switchAccountBtn = document.querySelector('.switch-account-btn');
+	if (switchAccountBtn) {
+		switchAccountBtn.onclick = function() {
+			sessionStorage.removeItem('user');
+			window.location.href = 'index.html';
+		};
 	}
 };

@@ -1,11 +1,80 @@
 const express = require('express');
 const app = express();
-const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const path = require('path');
-const server = http.createServer(app);
 const { Server } = require("socket.io");
-const io = new Server(server);
 const nodemailer = require('nodemailer');
+const helmet = require('helmet');
+const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
+
+// Development vs Production logging
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+function debugLog(...args) {
+    if (isDevelopment) {
+        console.log('[DEBUG]', ...args);
+    }
+}
+
+function infoLog(...args) {
+    console.log('[INFO]', ...args);
+}
+
+function errorLog(...args) {
+    console.error('[ERROR]', ...args);
+}
+
+// Security middleware
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.boxicons.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "wss:", "ws:"],
+            fontSrc: ["'self'", "https://cdn.boxicons.com"],
+        },
+    },
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use(limiter);
+
+// API rate limiting (more lenient for development)
+const apiLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 50, // Allow 50 requests per 5 minutes
+    message: {
+        error: true,
+        message: 'Quá nhiều yêu cầu, vui lòng thử lại sau 5 phút.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api/', apiLimiter);
+
+// SSL Configuration
+const sslOptions = {
+    key: fs.readFileSync('key.pem'),
+    cert: fs.readFileSync('cert.pem')
+};
+
+const server = https.createServer(sslOptions, app);
+const io = new Server(server, {
+    cors: {
+        origin: ["https://localhost:4000"],
+        methods: ["GET", "POST"]
+    }
+});
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -18,12 +87,15 @@ const gameRooms = new Map();
 const playerRooms = new Map(); // Track which room each player is in
 const playerSockets = new Map(); // Track socket ID for each player
 
+<<<<<<< HEAD
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, 'client')));
 app.use('/DesignHud', express.static(path.join(__dirname, 'DesignHud')));
 
+=======
+>>>>>>> 6b7f29c (update5)
 let emailConfig;
 try {
     emailConfig = require('./email-config.js');
@@ -63,6 +135,22 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
+        // Password strength validation
+        if (password.length < 6) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Mật khẩu phải có ít nhất 6 ký tự' 
+            });
+        }
+
+        // Check if username already exists
+        if (registeredUsers.has(username)) {
+            return res.status(409).json({ 
+                success: false, 
+                message: 'Tên đăng nhập đã tồn tại' 
+            });
+        }
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ 
@@ -71,12 +159,16 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
+        // Hash password before storing
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
         verificationCodes.set(email, {
             code: verificationCode,
             username,
-            password,
+            password: hashedPassword, // Store hashed password
             expires: Date.now() + 10 * 60 * 1000
         });
 
@@ -165,7 +257,7 @@ app.post('/api/verify', (req, res) => {
     }
 });
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         
@@ -188,7 +280,10 @@ app.post('/api/login', (req, res) => {
             });
         }
 
-        if (user.password !== password) {
+        // Compare password with hashed password
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        
+        if (!passwordMatch) {
             return res.status(401).json({ 
                 success: false, 
                 message: 'Mật khẩu không đúng' 
@@ -261,9 +356,12 @@ io.on('connection', (socket) => {
             // Check password if room is locked
             if (room.status === 'Khóa') {
                 console.log('Room is locked, checking password...');
+<<<<<<< HEAD
                 console.log('Room password:', room.password);
                 console.log('Entered password:', password);
                 console.log('Password match:', room.password === password);
+=======
+>>>>>>> 6b7f29c (update5)
                 
                 if (!room.password || room.password.trim() === '') {
                     // Room is locked but has no password set - shouldn't happen but handle it
@@ -272,9 +370,18 @@ io.on('connection', (socket) => {
                 }
                 
                 if (!password || password !== room.password) {
+<<<<<<< HEAD
                     socket.emit('error', { message: 'Mật khẩu không đúng' });
                     return;
                 }
+=======
+                    console.log('Password verification failed for room', roomId);
+                    socket.emit('error', { message: 'Mật khẩu không đúng' });
+                    return;
+                }
+                
+                console.log('Password verification successful for room', roomId);
+>>>>>>> 6b7f29c (update5)
             }
             
             // Check if room is full
