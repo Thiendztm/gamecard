@@ -106,10 +106,7 @@ img {
     transition: all 0.3s ease;
     opacity: 0;
     transform: translateX(-50px);
-<<<<<<< HEAD
-=======
     margin-top: 10px;
->>>>>>> 6b7f29c (update5)
 }
 
 .menu-button:hover {
@@ -413,10 +410,6 @@ img {
     max-width: 1200px;
     height: 85vh;
     background: linear-gradient(135deg, rgba(0, 20, 30, 0.98), rgba(0, 40, 60, 0.98));
-<<<<<<< HEAD
-    border: 2px solid #4baa53;
-=======
->>>>>>> 6b7f29c (update5)
     border-radius: 15px;
     display: flex;
     flex-direction: column;
@@ -441,10 +434,6 @@ img {
     display: flex;
     justify-content: space-between;
     align-items: center;
-<<<<<<< HEAD
-    border-bottom: 2px solid #4baa53;
-=======
->>>>>>> 6b7f29c (update5)
     flex-wrap: wrap;
     gap: 15px;
 }
@@ -608,10 +597,6 @@ img {
     display: flex;
     gap: 15px;
     justify-content: center;
-<<<<<<< HEAD
-    border-top: 2px solid #4baa53;
-=======
->>>>>>> 6b7f29c (update5)
 }
 
 .refresh-rooms-btn,
@@ -837,32 +822,18 @@ img {
 .waiting-room-content {
     position: relative;
     width: 600px;
-<<<<<<< HEAD
-    background: #2c2c2c;
-    border: 2px solid #666;
-=======
     background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
     border: none;
->>>>>>> 6b7f29c (update5)
     border-radius: 10px;
     color: white;
 }
 
 .waiting-room-header {
-<<<<<<< HEAD
-    background: #333;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #666;
-=======
     background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
     padding: 15px 25px;
     display: flex;
     justify-content: space-between;
     align-items: center;
->>>>>>> 6b7f29c (update5)
 }
 
 .waiting-room-header h3 {
@@ -891,11 +862,7 @@ img {
 .room-info {
     margin-bottom: 20px;
     padding: 15px;
-<<<<<<< HEAD
-    background: #444;
-=======
     background: #2f0f0f;
->>>>>>> 6b7f29c (update5)
     border-radius: 5px;
 }
 
@@ -927,11 +894,7 @@ img {
 .player-slot {
     flex: 1;
     padding: 15px;
-<<<<<<< HEAD
-    background: #444;
-=======
     background: #2f0f0f;
->>>>>>> 6b7f29c (update5)
     border-radius: 5px;
     text-align: center;
 }
@@ -939,19 +902,13 @@ img {
 .player-avatar {
     width: 50px;
     height: 50px;
-<<<<<<< HEAD
-    background: #666;
-=======
     background: #ffffff;
->>>>>>> 6b7f29c (update5)
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 10px;
     font-weight: bold;
-<<<<<<< HEAD
-=======
     position: relative;
     overflow: hidden;
 }
@@ -967,7 +924,6 @@ img {
     color: #000000;
     font-size: 16px;
     font-weight: bold;
->>>>>>> 6b7f29c (update5)
 }
 
 .player-name {
@@ -986,27 +942,12 @@ img {
 
 .waiting-room-footer {
     padding: 15px 20px;
-<<<<<<< HEAD
-    border-top: 1px solid #666;
-=======
->>>>>>> 6b7f29c (update5)
     display: flex;
     gap: 10px;
     justify-content: flex-end;
 }
 
 .ready-btn, .leave-room-btn {
-<<<<<<< HEAD
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.ready-btn {
-    background: #4CAF50;
-=======
     background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
     padding: 10px 20px;
@@ -1022,24 +963,14 @@ img {
 }
 
 .ready-btn {
->>>>>>> 6b7f29c (update5)
     color: white;
 }
 
 .ready-btn.not-ready {
-<<<<<<< HEAD
-    background: #666;
-=======
->>>>>>> 6b7f29c (update5)
     color: #ccc;
 }
 
 .leave-room-btn {
-<<<<<<< HEAD
-    background: #f44336;
-    color: white;
-}
-=======
     color: white;
 }
 
@@ -1175,4 +1106,3 @@ img {
 .avatar-container {
     cursor: pointer !important;
 }
->>>>>>> 6b7f29c (update5)

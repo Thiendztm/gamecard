@@ -87,15 +87,6 @@ const gameRooms = new Map();
 const playerRooms = new Map(); // Track which room each player is in
 const playerSockets = new Map(); // Track socket ID for each player
 
-<<<<<<< HEAD
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(express.static(path.join(__dirname, 'client')));
-app.use('/DesignHud', express.static(path.join(__dirname, 'DesignHud')));
-
-=======
->>>>>>> 6b7f29c (update5)
 let emailConfig;
 try {
     emailConfig = require('./email-config.js');
@@ -356,12 +347,6 @@ io.on('connection', (socket) => {
             // Check password if room is locked
             if (room.status === 'Khóa') {
                 console.log('Room is locked, checking password...');
-<<<<<<< HEAD
-                console.log('Room password:', room.password);
-                console.log('Entered password:', password);
-                console.log('Password match:', room.password === password);
-=======
->>>>>>> 6b7f29c (update5)
                 
                 if (!room.password || room.password.trim() === '') {
                     // Room is locked but has no password set - shouldn't happen but handle it
@@ -370,18 +355,12 @@ io.on('connection', (socket) => {
                 }
                 
                 if (!password || password !== room.password) {
-<<<<<<< HEAD
-                    socket.emit('error', { message: 'Mật khẩu không đúng' });
-                    return;
-                }
-=======
                     console.log('Password verification failed for room', roomId);
                     socket.emit('error', { message: 'Mật khẩu không đúng' });
                     return;
                 }
                 
                 console.log('Password verification successful for room', roomId);
->>>>>>> 6b7f29c (update5)
             }
             
             // Check if room is full

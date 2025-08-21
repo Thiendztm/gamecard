@@ -1,30 +1,9 @@
 
-<<<<<<< HEAD
-const DEBUG = false; // Set to false in production
-=======
 const DEBUG = false;
->>>>>>> 6b7f29c (update5)
 const debug = DEBUG ? console.log : () => {};
 
 debug('Main menu loaded');
 
-<<<<<<< HEAD
-// Game rooms storage
-let gameRooms = [];
-let currentRoom = null;
-// Use existing socket from client.js instead of declaring new one
-
-// Initialize socket connection
-function initializeSocket() {
-    // socket is already initialized in client.js, just add event listeners
-    
-    socket.on('connect', () => {
-        console.log('Connected to server');
-    });
-    
-    socket.on('error', (data) => {
-        console.log('Server error:', data);
-=======
 let gameRooms = [];
 let currentRoom = null;
 
@@ -34,33 +13,20 @@ function initializeSocket() {
     });
     
     socket.on('error', (data) => {
->>>>>>> 6b7f29c (update5)
         alert(data.message || 'Có lỗi xảy ra');
     });
     
     socket.on('roomCreated', (roomData) => {
-<<<<<<< HEAD
-        console.log('Room created:', roomData);
-=======
->>>>>>> 6b7f29c (update5)
         gameRooms.push(roomData);
         updateRoomList();
     });
     
     socket.on('roomJoined', (roomData) => {
-<<<<<<< HEAD
-        console.log('Joined room:', roomData);
-=======
->>>>>>> 6b7f29c (update5)
         currentRoom = roomData;
         openWaitingRoom(roomData);
     });
     
     socket.on('playerJoined', (data) => {
-<<<<<<< HEAD
-        console.log('Player joined:', data);
-=======
->>>>>>> 6b7f29c (update5)
         if (currentRoom && currentRoom.id === data.roomId) {
             currentRoom.players = data.players;
             updateWaitingRoom();
@@ -69,10 +35,6 @@ function initializeSocket() {
     });
     
     socket.on('playerLeft', (data) => {
-<<<<<<< HEAD
-        console.log('Player left:', data);
-=======
->>>>>>> 6b7f29c (update5)
         if (currentRoom && currentRoom.id === data.roomId) {
             currentRoom.players = data.players;
             updateWaitingRoom();
@@ -81,28 +43,16 @@ function initializeSocket() {
     });
     
     socket.on('playerReady', (data) => {
-<<<<<<< HEAD
-        console.log('Player ready status:', data);
-=======
->>>>>>> 6b7f29c (update5)
         if (currentRoom && currentRoom.id === data.roomId) {
             updatePlayerStatus(data.playerId, data.ready);
         }
     });
     
     socket.on('gameStart', (data) => {
-<<<<<<< HEAD
-        console.log('Game starting:', data);
-=======
->>>>>>> 6b7f29c (update5)
         window.location.href = 'gamePlay.html';
     });
     
     socket.on('roomList', (rooms) => {
-<<<<<<< HEAD
-        console.log('Room list updated:', rooms);
-=======
->>>>>>> 6b7f29c (update5)
         gameRooms = rooms;
         updateRoomList();
     });
@@ -121,11 +71,6 @@ window.onload = function() {
         usernameElement.textContent = userData.username;
     }
     
-<<<<<<< HEAD
-    // Initialize socket connection
-    initializeSocket();
-    
-=======
     initializeSocket();
     
     // Emit userLogin event to register the user as online
@@ -133,7 +78,6 @@ window.onload = function() {
         socket.emit('userLogin', userData.username);
     }, 100); // Small delay to ensure socket is connected
     
->>>>>>> 6b7f29c (update5)
     const logoMenu = document.getElementById('logo-menu');
     if (logoMenu) {
         logoMenu.classList.add('transition-animation');        
@@ -151,18 +95,10 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-<<<<<<< HEAD
-// Room panel functions
-=======
->>>>>>> 6b7f29c (update5)
 function openRoomPanel() {
     const roomPanel = document.getElementById('room-creation-panel');
     if (roomPanel) {
         roomPanel.classList.remove('hidden');
-<<<<<<< HEAD
-        console.log('Room creation panel opened');
-=======
->>>>>>> 6b7f29c (update5)
     }
 }
 
@@ -170,27 +106,13 @@ function closeRoomPanel() {
     const roomPanel = document.getElementById('room-creation-panel');
     if (roomPanel) {
         roomPanel.classList.add('hidden');
-<<<<<<< HEAD
-        console.log('Room creation panel closed');
     }
 }
 
-// Room browser functions
-=======
-    }
-}
-
->>>>>>> 6b7f29c (update5)
 function openRoomBrowser() {
     const browserPanel = document.getElementById('room-browser-panel');
     if (browserPanel) {
         browserPanel.classList.remove('hidden');
-<<<<<<< HEAD
-        console.log('Room browser opened');
-        
-        // Set current username
-=======
->>>>>>> 6b7f29c (update5)
         const user = JSON.parse(sessionStorage.getItem('user') || '{}');
         const usernameElement = document.getElementById('browser-username');
         if (usernameElement && user.username) {
@@ -205,18 +127,10 @@ function closeRoomBrowser() {
     const browserPanel = document.getElementById('room-browser-panel');
     if (browserPanel) {
         browserPanel.classList.add('hidden');
-<<<<<<< HEAD
-        console.log('Room browser closed');
-=======
->>>>>>> 6b7f29c (update5)
     }
 }
 
 function refreshRoomList() {
-<<<<<<< HEAD
-    console.log('Refreshing room list and cleaning up disconnected players...');
-=======
->>>>>>> 6b7f29c (update5)
     if (socket) {
         socket.emit('getRoomList');
     }
@@ -266,11 +180,7 @@ function updateRoomList() {
     });
     
     table.appendChild(tbody);
-<<<<<<< HEAD
-    console.log(`Displayed ${gameRooms.length} rooms`);
-=======
     
->>>>>>> 6b7f29c (update5)
 }
 
 function joinSelectedRoom() {
@@ -407,10 +317,6 @@ function openWaitingRoom(roomData) {
         document.getElementById('room-type-display').textContent = roomData.type;
         
         updateWaitingRoom();
-<<<<<<< HEAD
-        console.log('Waiting room opened for:', roomData.id);
-=======
->>>>>>> 6b7f29c (update5)
     }
 }
 
@@ -429,9 +335,6 @@ function closeWaitingRoom() {
         }
         
         currentRoom = null;
-<<<<<<< HEAD
-        console.log('Waiting room closed');
-=======
     }
 }
 
@@ -468,7 +371,6 @@ async function setPlayerAvatar(playerIndex, username) {
         avatarImg.style.display = 'none';
         placeholder.style.display = 'block';
         placeholder.textContent = `P${playerIndex}`;
->>>>>>> 6b7f29c (update5)
     }
 }
 
@@ -477,15 +379,12 @@ function updateWaitingRoom() {
     
     const players = currentRoom.players || [];
     
-<<<<<<< HEAD
-=======
     // Update player count display
     const playerCountDisplay = document.getElementById('player-count-display');
     if (playerCountDisplay) {
         playerCountDisplay.textContent = `Người chơi (${players.length}/${currentRoom.maxPlayers || 2})`;
     }
     
->>>>>>> 6b7f29c (update5)
     // Update player slots
     for (let i = 0; i < 2; i++) {
         const player = players[i];
@@ -496,22 +395,16 @@ function updateWaitingRoom() {
             nameElement.textContent = player.name;
             statusElement.textContent = player.ready ? 'Sẵn sàng' : 'Chưa sẵn sàng';
             statusElement.className = player.ready ? 'player-status ready' : 'player-status';
-<<<<<<< HEAD
-=======
             
             // Set player avatar
             setPlayerAvatar(i + 1, player.name);
->>>>>>> 6b7f29c (update5)
         } else {
             nameElement.textContent = 'Đang chờ...';
             statusElement.textContent = 'Chưa sẵn sàng';
             statusElement.className = 'player-status';
-<<<<<<< HEAD
-=======
             
             // Reset avatar to placeholder
             setPlayerAvatar(i + 1, null);
->>>>>>> 6b7f29c (update5)
         }
     }
     
@@ -580,72 +473,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const roomBrowserOverlay = document.querySelector('.room-browser-overlay');
     const hostRoomBtn = document.querySelector('.host-room-btn');
     
-    // Room creation panel elements
-    const closeRoomBtn = document.querySelector('.close-room-panel');
-    const hostDuelBtn = document.querySelector('.host-duel-btn');
-    const roomPanelOverlay = document.querySelector('.room-panel-overlay');
-    
-    // Waiting room elements
-    const closeWaitingRoomBtn = document.querySelector('.close-waiting-room');
-    const leaveRoomBtn = document.querySelector('.leave-room-btn');
-    const readyBtn = document.getElementById('ready-btn');
-    const waitingRoomOverlay = document.querySelector('.waiting-room-overlay');
-    
-    // Room browser panel elements
-    const refreshRoomsBtn = document.querySelector('.refresh-rooms-btn');
-    const joinRoomBtn = document.querySelector('.join-room-btn');
-    const cancelBrowserBtn = document.querySelector('.cancel-browser-btn');
-    const roomBrowserOverlay = document.querySelector('.room-browser-overlay');
-    const hostRoomBtn = document.querySelector('.host-room-btn');
-    
-    // Menu button handlers
     if (roomBtn) {
         roomBtn.onclick = function() {
-<<<<<<< HEAD
-            console.log('Tạo phòng clicked from main menu - opening room browser');
-=======
->>>>>>> 6b7f29c (update5)
             openRoomBrowser();
         };
     }
     
     if (deckBtn) {
         deckBtn.onclick = function() {
-<<<<<<< HEAD
-            console.log('Xây dựng deck clicked');
-            // TODO: Add deck builder functionality
-=======
->>>>>>> 6b7f29c (update5)
         };
     }
     
     if (myProfileBtn) {
         myProfileBtn.onclick = function() {
-<<<<<<< HEAD
-            console.log('Xem hồ sơ clicked');
-            // TODO: Add profile functionality
-=======
             openProfile(); // Open current user's profile
->>>>>>> 6b7f29c (update5)
         };
     }
     
     if (exitBtn) {
         exitBtn.onclick = function() {
-<<<<<<< HEAD
-            console.log('Thoát clicked');
-=======
->>>>>>> 6b7f29c (update5)
             logout();
         };
     }
     
     if (settingsBtn) {
         settingsBtn.onclick = function() {
-<<<<<<< HEAD
-            console.log('Cài đặt clicked');
-            // TODO: Add settings functionality
-=======
         };
     }
     
@@ -1007,180 +859,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Enter') {
                 searchUserProfile();
             }
->>>>>>> 6b7f29c (update5)
         };
-    }
-    
-    // Room creation panel event handlers
-    if (closeRoomBtn) {
-        closeRoomBtn.onclick = closeRoomPanel;
-    }
-    
-    if (hostDuelBtn) {
-        hostDuelBtn.onclick = function(e) {
-            e.preventDefault();
-            
-            // Prevent double clicks
-            if (hostDuelBtn.disabled) return;
-            
-            hostDuelBtn.disabled = true;
-            hostDuelBtn.textContent = 'Đang tạo...';
-            
-            setTimeout(() => {
-                createRoom();
-                
-                // Re-enable button after a short delay
-                setTimeout(() => {
-                    hostDuelBtn.disabled = false;
-                    hostDuelBtn.textContent = 'Tạo phòng';
-                }, 500);
-            }, 50);
-        };
-    }
-    
-    if (roomPanelOverlay) {
-        roomPanelOverlay.onclick = closeRoomPanel;
-    }
-    
-    // Waiting room event handlers
-    if (closeWaitingRoomBtn) {
-        closeWaitingRoomBtn.onclick = closeWaitingRoom;
-    }
-    
-    if (leaveRoomBtn) {
-        leaveRoomBtn.onclick = closeWaitingRoom;
-    }
-    
-    if (readyBtn) {
-        readyBtn.onclick = toggleReady;
-    }
-    
-    if (waitingRoomOverlay) {
-        waitingRoomOverlay.onclick = closeWaitingRoom;
-    }
-    
-    // Room browser panel event handlers
-    if (refreshRoomsBtn) {
-        refreshRoomsBtn.onclick = refreshRoomList;
-    }
-    
-    if (joinRoomBtn) {
-        joinRoomBtn.onclick = joinSelectedRoom;
-    }
-    
-    if (cancelBrowserBtn) {
-        cancelBrowserBtn.onclick = closeRoomBrowser;
-    }
-    
-    if (roomBrowserOverlay) {
-        roomBrowserOverlay.onclick = closeRoomBrowser;
-    }
-    
-    if (hostRoomBtn) {
-        hostRoomBtn.onclick = function() {
-            console.log('Host room button clicked - opening creation panel over browser');
-            openRoomPanel();
-            // Don't close browser - let creation panel overlay on top
-        };
-    }
-    
-    // Room row selection
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.room-row')) {
-            // Remove previous selection
-            document.querySelectorAll('.room-row').forEach(row => {
-                row.classList.remove('selected');
-            });
-            
-            // Add selection to clicked row
-            e.target.closest('.room-row').classList.add('selected');
-            
-            // Enable join button
-            if (joinRoomBtn) {
-                joinRoomBtn.disabled = false;
-            }
-        }
-    });
-    
-    // Search functionality
-    const searchInput = document.querySelector('.room-search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('.room-row');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    }
-    
-    // Enter key support for room creation
-    const roomInputs = document.querySelectorAll('.duel-note-input, .duel-password-input');
-    roomInputs.forEach(input => {
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                createRoom();
-            }
-        });
-    });
-    
-    // Auto-select radio button based on password input
-    const passwordInput = document.querySelector('.duel-password-input');
-    if (passwordInput) {
-        // Handle typing and pasting
-        passwordInput.addEventListener('input', function() {
-            const hasPassword = this.value.trim().length > 0;
-            const radioButtons = document.querySelectorAll('input[name="duel-type"]');
-            
-            radioButtons.forEach(radio => {
-                // Temporarily enable to change programmatically
-                radio.disabled = false;
-                
-                if (hasPassword) {
-                    // If password exists, select "Khóa"
-                    radio.checked = (radio.value === 'Khóa');
-                } else {
-                    // If no password, select "Công khai"
-                    radio.checked = (radio.value === 'Công khai');
-                }
-                
-                // Re-disable to prevent manual interaction
-                radio.disabled = true;
-            });
-            
-            debug('Password input changed, auto-selected:', hasPassword ? 'Khóa' : 'Công khai');
-        });
-        
-        // Handle paste events
-        passwordInput.addEventListener('paste', function() {
-            // Use setTimeout to wait for paste to complete
-            setTimeout(() => {
-                const hasPassword = this.value.trim().length > 0;
-                const radioButtons = document.querySelectorAll('input[name="duel-type"]');
-                
-                radioButtons.forEach(radio => {
-                    // Temporarily enable to change programmatically
-                    radio.disabled = false;
-                    
-                    if (hasPassword) {
-                        radio.checked = (radio.value === 'Khóa');
-                    } else {
-                        radio.checked = (radio.value === 'Công khai');
-                    }
-                    
-                    // Re-disable to prevent manual interaction
-                    radio.disabled = true;
-                });
-                
-                debug('Password pasted, auto-selected:', hasPassword ? 'Khóa' : 'Công khai');
-            }, 10);
-        });
     }
 });
 
