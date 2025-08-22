@@ -48,6 +48,16 @@ function initializeSocket() {
         }
     });
     
+    socket.on('avatarUpdated', (data) => {
+        if (currentRoom && currentRoom.id === data.roomId) {
+            console.log(`Avatar updated for player ${data.playerId}: ${data.avatar}`);
+            // Clear the avatar cache for this user to force reload
+            userAvatars.delete(data.playerId);
+            // Update the waiting room to show the new avatar
+            updateWaitingRoom();
+        }
+    });
+    
     socket.on('gameStart', (data) => {
         window.location.href = 'gamePlay.html';
     });
@@ -72,6 +82,9 @@ window.onload = function() {
     }
     
     initializeSocket();
+    
+    // Set test avatars for specific users
+    setTestAvatars();
     
     // Emit userLogin event to register the user as online
     setTimeout(() => {
@@ -223,7 +236,8 @@ function joinSelectedRoom() {
             player: {
                 id: user.username,
                 name: user.username,
-                ready: false
+                ready: false,
+                avatar: currentUserAvatar // Include current user's avatar
             },
             password: enteredPassword
         });
@@ -264,7 +278,8 @@ function createRoom() {
         players: [{
             id: user.username,
             name: user.username,
-            ready: false
+            ready: false,
+            avatar: currentUserAvatar // Include current user's avatar
         }],
         created: new Date()
     };
@@ -352,22 +367,38 @@ async function generateAvatar(username) {
 
 // Function to set player avatar
 async function setPlayerAvatar(playerIndex, username) {
+    console.log(`Setting avatar for player ${playerIndex}, username: ${username}`);
+    
     const avatarImg = document.getElementById(`player${playerIndex}-avatar-img`);
     const placeholder = document.getElementById(`player${playerIndex}-placeholder`);
     
+    if (!avatarImg || !placeholder) {
+        console.error(`Avatar elements not found for player ${playerIndex}`);
+        return;
+    }
+    
     if (username && username !== 'Đang chờ...') {
+        console.log(`Loading avatar for user: ${username}`);
         const avatarUrl = await generateAvatar(username);
+        console.log(`Avatar URL for ${username}: ${avatarUrl}`);
+        
         avatarImg.src = avatarUrl;
         avatarImg.style.display = 'block';
         placeholder.style.display = 'none';
         
         // Fallback to placeholder if image fails to load
         avatarImg.onerror = function() {
+            console.error(`Failed to load avatar image: ${avatarUrl}`);
             avatarImg.style.display = 'none';
             placeholder.style.display = 'block';
             placeholder.textContent = username.substring(0, 2).toUpperCase();
         };
+        
+        avatarImg.onload = function() {
+            console.log(`Avatar loaded successfully for ${username}: ${avatarUrl}`);
+        };
     } else {
+        console.log(`No username provided for player ${playerIndex}, showing placeholder`);
         avatarImg.style.display = 'none';
         placeholder.style.display = 'block';
         placeholder.textContent = `P${playerIndex}`;
@@ -378,12 +409,16 @@ function updateWaitingRoom() {
     if (!currentRoom) return;
     
     const players = currentRoom.players || [];
+    console.log('Updating waiting room with players:', players);
     
     // Update player count display
     const playerCountDisplay = document.getElementById('player-count-display');
     if (playerCountDisplay) {
         playerCountDisplay.textContent = `Người chơi (${players.length}/${currentRoom.maxPlayers || 2})`;
     }
+    
+    // Clear avatar cache to force reload of avatars
+    userAvatars.clear();
     
     // Update player slots
     for (let i = 0; i < 2; i++) {
@@ -392,6 +427,7 @@ function updateWaitingRoom() {
         const statusElement = document.getElementById(`player${i + 1}-status`);
         
         if (player) {
+            console.log(`Setting up player ${i + 1}:`, player);
             nameElement.textContent = player.name;
             statusElement.textContent = player.ready ? 'Sẵn sàng' : 'Chưa sẵn sàng';
             statusElement.className = player.ready ? 'player-status ready' : 'player-status';
@@ -399,6 +435,7 @@ function updateWaitingRoom() {
             // Set player avatar
             setPlayerAvatar(i + 1, player.name);
         } else {
+            console.log(`No player for slot ${i + 1}`);
             nameElement.textContent = 'Đang chờ...';
             statusElement.textContent = 'Chưa sẵn sàng';
             statusElement.className = 'player-status';
@@ -656,6 +693,14 @@ function openProfile(username = null) {
     if (profileViewer) {
         profileViewer.style.display = 'flex';
         
+        // Add click-outside-to-close functionality
+        profileViewer.onclick = function(e) {
+            // Only close if clicking on the profile-viewer background, not on the profile container
+            if (e.target === profileViewer) {
+                closeProfile();
+            }
+        };
+        
         // Add avatar click handler when profile opens
         setTimeout(() => {
             const profileAvatar = document.getElementById('profile-avatar-img');
@@ -689,6 +734,8 @@ function openProfile(username = null) {
 function closeProfile() {
     const profileViewer = document.getElementById('profile-viewer');
     if (profileViewer) {
+        // Remove the click event listener
+        profileViewer.onclick = null;
         profileViewer.style.display = 'none';
     }
 }
@@ -870,15 +917,30 @@ let userAvatars = new Map(); // Cache for other users' avatars
 async function fetchUserAvatar(username) {
     // Check cache first
     if (userAvatars.has(username)) {
+        console.log(`Avatar cache hit for ${username}:`, userAvatars.get(username));
         return userAvatars.get(username);
     }
     
+    // Check if we're in a room and the user has an avatar in room data
+    if (currentRoom) {
+        const player = currentRoom.players.find(p => p.id === username);
+        if (player && player.avatar) {
+            console.log(`Found avatar in room data for ${username}:`, player.avatar);
+            userAvatars.set(username, player.avatar);
+            return player.avatar;
+        }
+    }
+    
     try {
+        console.log(`Fetching avatar for user: ${username}`);
         const response = await fetch(`/api/profile/${username}`);
         const data = await response.json();
         
+        console.log(`API response for ${username}:`, data);
+        
         if (data.success && data.profile.avatar) {
             userAvatars.set(username, data.profile.avatar);
+            console.log(`Avatar set for ${username}:`, data.profile.avatar);
             return data.profile.avatar;
         }
     } catch (error) {
@@ -888,6 +950,7 @@ async function fetchUserAvatar(username) {
     // Fallback to default
     const defaultAvatar = '/DesignHud/reimu2.png';
     userAvatars.set(username, defaultAvatar);
+    console.log(`Using default avatar for ${username}:`, defaultAvatar);
     return defaultAvatar;
 }
 
@@ -947,6 +1010,16 @@ async function selectAvatar(avatarPath) {
             // Update cache
             userAvatars.set(user.username, avatarPath);
             console.log('Avatar saved to server:', avatarPath);
+            
+            // Broadcast avatar update to other players in the room
+            if (currentRoom && socket) {
+                socket.emit('avatarUpdate', {
+                    roomId: currentRoom.id,
+                    playerId: user.username,
+                    avatar: avatarPath
+                });
+                console.log('Avatar update broadcasted to room:', currentRoom.id);
+            }
         } catch (error) {
             console.error('Error saving avatar:', error);
         }
@@ -965,6 +1038,29 @@ async function selectAvatar(avatarPath) {
     sessionStorage.setItem('userAvatar', avatarPath);
     
     closeAvatarSelector();
+}
+
+// Function to set test avatars
+async function setTestAvatars() {
+    try {
+        const response = await fetch('/api/set-test-avatars', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            console.log('Test avatars set successfully:', data.message);
+            // Clear avatar cache to force reload
+            userAvatars.clear();
+        } else {
+            console.error('Failed to set test avatars:', data.message);
+        }
+    } catch (error) {
+        console.error('Error setting test avatars:', error);
+    }
 }
 
 // Initialize avatar selector event handlers

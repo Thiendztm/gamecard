@@ -546,6 +546,9 @@ button, input[type="button"], input[type="submit"], [onclick], .clickable {
     z-index: 1000;
 }
 
+#profile-viewer .profile-container {
+    cursor: default; /* Reset cursor for the profile container */
+}
 
 .profile-container {
     position: relative;
@@ -576,7 +579,6 @@ button, input[type="button"], input[type="submit"], [onclick], .clickable {
 
 .profile-info {
     flex: 1;
-    color: white;
 }
 
 .username-row {
@@ -607,24 +609,9 @@ button, input[type="button"], input[type="submit"], [onclick], .clickable {
     margin-bottom: 30px;
 }
 
-.status-info-row {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
-}
-
-.status-item {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: flex-start;
-}
-
 .status-row {
     display: flex;
     margin-bottom: 8px;
-    align-items: center;
 }
 
 .status-label {
@@ -683,7 +670,6 @@ button, input[type="button"], input[type="submit"], [onclick], .clickable {
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
-    align-items: center;
 }
 
 .stats-label {
@@ -695,29 +681,6 @@ button, input[type="button"], input[type="submit"], [onclick], .clickable {
     color: #00ff88;
     font-weight: bold;
     font-size: 14px;
-}
-
-.profile-close-btn {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    width: 35px;
-    height: 35px;
-    background: rgba(255, 0, 0, 0.8);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.profile-close-btn:hover {
-    background: rgba(255, 0, 0, 1);
-    transform: scale(1.1);
 }
 
 .profile-search {
@@ -781,4 +744,54 @@ button, input[type="button"], input[type="submit"], [onclick], .clickable {
     font-size: 24px;
     font-weight: bold;
     color: #00ff88;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .deck-builder-container {
+        width: 98vw;
+        height: 95vh;
+    }
+    
+    .deck-grid {
+        gap: 6px;
+    }
+    
+    .grid-cell {
+        min-height: 60px;
+    }
+}
+
+@media (max-width: 768px) {
+    .deck-sidebar {
+        width: 60px;
+        padding: 15px 0;
+    }
+    
+    .resource-counter {
+        width: 40px;
+        height: 25px;
+        font-size: 14px;
+    }
+    
+    .action-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+    
+    .deck-label {
+        font-size: 14px;
+    }
+    
+    .deck-builder-footer {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .deck-info {
+        flex-direction: column;
+        gap: 10px;
+    }
 }
