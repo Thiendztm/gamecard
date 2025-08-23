@@ -7,11 +7,13 @@
     <title>Board Card Game</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="main_menu.css">
+    <link rel="stylesheet" href="character-sprites.css">
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
     <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="./client.js" defer></script>
-    <script src="./main_menu.js" defer></script>
+    <script src="character-functions.js"></script>
+    <script src="client.js"></script>
+    <script src="main_menu.js"></script>
 </head>
 <body>
 
@@ -158,6 +160,10 @@
                             </div>
                             <div class="player-name" id="player1-name">Đang chờ...</div>
                             <div class="player-status" id="player1-status">Chưa sẵn sàng</div>
+                            <div class="player-character-selection">
+                                <button class="character-select-btn" data-player="1" id="player1-char-btn">Chọn nhân vật</button>
+                                <div class="selected-character-display" id="player1-selected">Chưa chọn</div>
+                            </div>
                         </div>
                         <div class="player-slot" id="player2-slot">
                             <div class="player-avatar" id="player2-avatar">
@@ -166,6 +172,32 @@
                             </div>
                             <div class="player-name" id="player2-name">Đang chờ...</div>
                             <div class="player-status" id="player2-status">Chưa sẵn sàng</div>
+                            <div class="player-character-selection">
+                                <button class="character-select-btn" data-player="2" id="player2-char-btn">Chọn nhân vật</button>
+                                <div class="selected-character-display" id="player2-selected">Chưa chọn</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Character Selection Modal -->
+                <div class="character-selection-modal" id="character-modal" style="display: none;">
+                    <div class="modal-overlay"></div>
+                    <div class="modal-content">
+                        <h4>Chọn nhân vật</h4>
+                        <div class="character-buttons">
+                            <button class="character-btn" data-character="marisa" id="modal-marisa-btn">
+                                <img src="/DesignHud/marisamap.png" alt="Marisa">
+                                <span>Marisa</span>
+                            </button>
+                            <button class="character-btn" data-character="reimu" id="modal-reimu-btn">
+                                <img src="/DesignHud/reimumap.png" alt="Reimu">
+                                <span>Reimu</span>
+                            </button>
+                        </div>
+                        <div class="modal-buttons">
+                            <button class="confirm-btn" id="confirm-character">Xác nhận</button>
+                            <button class="cancel-btn" id="cancel-character">Hủy</button>
                         </div>
                     </div>
                 </div>

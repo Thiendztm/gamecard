@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map 2</title>
+    <link rel="stylesheet" href="audio.css">
+    <link rel="stylesheet" href="character-sprites.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="character-functions.js" defer></script>
+</head>
+<body style="background-image: url('/DesignHud/map2.png');background-repeat: no-repeat; background-size: cover;">
+    <div class="music-control">
+        <div class="music-icon" id="musicIcon">🎵</div>
+        <div class="volume-control">
+            <span class="volume-text" id="volumeText">50%</span>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50">
+        </div>
+    </div>
+    
+    <div class="action-panel">
+        <div class="action-items">
+            <div class="action-item">Đánh</div>
+            <div class="action-item">Kỹ năng</div>
+            <div class="action-item">Phòng thủ</div>
+        </div>
+        <div class="user-section"></div>
+    </div>
+    
+    <audio id="backgroundMusic" loop>
+        <source src="/audio/08. Voile, the Magic Library.mp3" type="audio/mpeg">
+    </audio>
+    
+    <script>
+        const audio = document.getElementById('backgroundMusic');
+        const musicIcon = document.getElementById('musicIcon');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeText = document.getElementById('volumeText');
+        
+        let isPlaying = false;
+        
+        // Set initial volume
+        audio.volume = 0.5;
+        
+        
+        // Auto-play when page loads
+        window.addEventListener('load', () => {
+            audio.play().then(() => {
+                isPlaying = true;
+                musicIcon.textContent = '🎵';
+            }).catch(() => {
+                console.log('Auto-play prevented - user interaction required');
+            });
+            
+        });
+        
+        // Music icon click - toggle play/pause
+        musicIcon.addEventListener('click', () => {
+            if (isPlaying) {
+                audio.pause();
+                musicIcon.textContent = '🔇';
+                isPlaying = false;
+            } else {
+                audio.play();
+                musicIcon.textContent = '🎵';
+                isPlaying = true;
+            }
+        });
+        
+        // Volume slider
+        volumeSlider.addEventListener('input', (e) => {
+            const volume = e.target.value / 100;
+            audio.volume = volume;
+            volumeText.textContent = e.target.value + '%';
+            
+            // Update icon based on volume
+            if (volume === 0) {
+                musicIcon.textContent = '🔇';
+            } else {
+                musicIcon.textContent = '🎵';
+            }
+        });
+        
+        // Handle audio end (though loop should prevent this)
+        audio.addEventListener('ended', () => {
+            audio.currentTime = 0;
+            audio.play();
+        });
+        
+        // Socket connection for real-time character updates
+        const socket = io();
+        
+        // Listen for character selection updates
+        socket.on('characterSelected', (data) => {
+            console.log('Character selection update received on map:', data);
+            
+            // Update room character selections
+            const roomCharacterSelections = JSON.parse(sessionStorage.getItem('roomCharacterSelections') || '{}');
+            roomCharacterSelections[data.playerId] = data.character;
+            sessionStorage.setItem('roomCharacterSelections', JSON.stringify(roomCharacterSelections));
+            
+            // Throttled refresh of character sprites
+            if (typeof displayCharacterSprites === 'function') {
+                if (!window.lastMapSpriteUpdate || (Date.now() - window.lastMapSpriteUpdate) > 2000) {
+                    window.lastMapSpriteUpdate = Date.now();
+                    displayCharacterSprites();
+                }
+            }
+        });
+        
+    </script>
+</body>
+</html>

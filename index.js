@@ -40,21 +40,24 @@ app.use(helmet({
     },
 }));
 
-// Rate limiting
+// Rate limiting (more lenient for development)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
+    max: 5000, // Increased limit for development
+    message: 'Too many requests from this IP, please try again later.',
+    skip: (req) => {
+        // Skip rate limiting for static files during development
+        return req.url.includes('.css') || req.url.includes('.js') || req.url.includes('.html') || req.url.includes('.png') || req.url.includes('.jpg');
+    }
 });
 app.use(limiter);
 
 // API rate limiting (more lenient for development)
 const apiLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 50, // Allow 50 requests per 5 minutes
+    max: 2000, // Increased limit for development
     message: {
-        error: true,
-        message: 'Quá nhiều yêu cầu, vui lòng thử lại sau 5 phút.'
+        error: 'Too many API requests, please try again later.'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -79,7 +82,17 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(express.static(path.join(__dirname, 'client')));
+app.use(express.static(path.join(__dirname, 'client'), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        } else if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        } else if (path.endsWith('.html')) {
+            res.setHeader('Content-Type', 'text/html');
+        }
+    }
+}));
 app.use('/DesignHud', express.static(path.join(__dirname, 'DesignHud')));
 
 // Game rooms storage
@@ -228,16 +241,7 @@ app.post('/api/verify', (req, res) => {
             username: verification.username,
             password: verification.password,
             email: email,
-            avatar: '/DesignHud/reimu2.png', // Default avatar
-            registeredAt: new Date(),
-            stats: {
-                aiWins: 0,
-                aiLosses: 0,
-                aiDraws: 0,
-                onlineWins: 0,
-                onlineLosses: 0,
-                onlineDraws: 0
-            }
+            registeredAt: new Date()
         });
         
         console.log('User saved to database:', verification.username);
@@ -308,166 +312,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// User profile and avatar management
-app.get('/api/profile/:username', (req, res) => {
-    try {
-        const { username } = req.params;
-        const user = registeredUsers.get(username);
-        
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'User not found' 
-            });
-        }
-        
-        res.json({ 
-            success: true, 
-            profile: {
-                username: user.username,
-                email: user.email,
-                avatar: user.avatar || '/DesignHud/reimu2.png',
-                registeredAt: user.registeredAt,
-                isOnline: true, // For now, assume all users are online
-                lastSeen: new Date(),
-                stats: user.stats || {
-                    aiWins: 0,
-                    aiLosses: 0,
-                    aiDraws: 0,
-                    onlineWins: 0,
-                    onlineLosses: 0,
-                    onlineDraws: 0
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Profile fetch error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Internal server error' 
-        });
-    }
-});
-
-app.post('/api/update-avatar', (req, res) => {
-    try {
-        const { username, avatar } = req.body;
-        
-        if (!username || !avatar) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Username and avatar are required' 
-            });
-        }
-        
-        const user = registeredUsers.get(username);
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'User not found' 
-            });
-        }
-        
-        // Update user's avatar
-        user.avatar = avatar;
-        registeredUsers.set(username, user);
-        
-        console.log(`Avatar updated for user ${username}: ${avatar}`);
-        
-        res.json({ 
-            success: true, 
-            message: 'Avatar updated successfully' 
-        });
-    } catch (error) {
-        console.error('Avatar update error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Internal server error' 
-        });
-    }
-});
-
-app.post('/api/user-profile', (req, res) => {
-    try {
-        const { username } = req.body;
-        
-        if (!username) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Username is required' 
-            });
-        }
-        
-        const user = registeredUsers.get(username);
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'User not found' 
-            });
-        }
-        
-        res.json({ 
-            success: true, 
-            user: {
-                username: user.username,
-                email: user.email,
-                avatar: user.avatar || '/DesignHud/reimu2.png',
-                registeredAt: user.registeredAt,
-                isOnline: true, // For now, assume all users are online
-                lastSeen: new Date(),
-                stats: user.stats || {
-                    aiWins: 0,
-                    aiLosses: 0,
-                    aiDraws: 0,
-                    onlineWins: 0,
-                    onlineLosses: 0,
-                    onlineDraws: 0
-                }
-            }
-        });
-    } catch (error) {
-        console.error('User profile fetch error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Internal server error' 
-        });
-    }
-});
-
-// Test endpoint to set avatars for specific users
-app.post('/api/set-test-avatars', (req, res) => {
-    try {
-        // Set specific avatars for testing
-        const testUsers = {
-            'thiendzz': '/DesignHud/marisa.png',
-            'thiencc': '/DesignHud/cirno.png'
-        };
-        
-        for (const [username, avatar] of Object.entries(testUsers)) {
-            const user = registeredUsers.get(username);
-            if (user) {
-                user.avatar = avatar;
-                registeredUsers.set(username, user);
-                console.log(`Set avatar for ${username}: ${avatar}`);
-            } else {
-                console.log(`User ${username} not found`);
-            }
-        }
-        
-        res.json({ 
-            success: true, 
-            message: 'Test avatars set successfully',
-            users: Object.keys(testUsers)
-        });
-    } catch (error) {
-        console.error('Set test avatars error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Internal server error' 
-        });
-    }
-});
-
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
     
@@ -484,12 +328,6 @@ io.on('connection', (socket) => {
             // Track creator's socket
             if (roomData.players && roomData.players.length > 0) {
                 playerSockets.set(roomData.players[0].id, socket.id);
-                
-                // Get creator's avatar from registered users
-                const creator = registeredUsers.get(roomData.players[0].id);
-                if (creator && creator.avatar) {
-                    roomData.players[0].avatar = creator.avatar;
-                }
             }
             
             // Join socket room
@@ -555,12 +393,6 @@ io.on('connection', (socket) => {
             room.players.push(player);
             playerRooms.set(socket.id, roomId);
             playerSockets.set(player.id, socket.id);
-            
-            // Get player's avatar from registered users
-            const user = registeredUsers.get(player.id);
-            if (user && user.avatar) {
-                player.avatar = user.avatar;
-            }
             
             // Join socket room
             socket.join(roomId);
@@ -656,38 +488,32 @@ io.on('connection', (socket) => {
         }
     });
     
-    // Handle avatar updates
-    socket.on('avatarUpdate', (data) => {
+    // Handle character selection
+    socket.on('characterSelected', (data) => {
         try {
-            const { roomId, playerId, avatar } = data;
+            const { roomId, playerId, playerPosition, character } = data;
             const room = gameRooms.get(roomId);
             
             if (!room) return;
             
-            const player = room.players.find(p => p.id === playerId);
-            if (player) {
-                // Update the player's avatar in the room data
-                player.avatar = avatar;
-                gameRooms.set(roomId, room);
-                
-                // Update the user's avatar in the registered users
-                const user = registeredUsers.get(playerId);
-                if (user) {
-                    user.avatar = avatar;
-                    registeredUsers.set(playerId, user);
-                }
-                
-                // Broadcast avatar update to all players in the room
-                io.to(roomId).emit('avatarUpdated', {
-                    roomId: roomId,
-                    playerId: playerId,
-                    avatar: avatar
-                });
-                
-                console.log(`Player ${playerId} avatar updated to ${avatar} in room ${roomId}`);
+            // Store character selection in room data
+            if (!room.characterSelections) {
+                room.characterSelections = {};
             }
+            room.characterSelections[playerId] = character;
+            gameRooms.set(roomId, room);
+            
+            // Notify all players in room about character selection
+            io.to(roomId).emit('characterSelected', {
+                roomId: roomId,
+                playerId: playerId,
+                playerPosition: playerPosition,
+                character: character
+            });
+            
+            console.log(`Player ${playerId} selected character ${character} in room ${roomId}`);
         } catch (error) {
-            console.error('Error updating avatar:', error);
+            console.error('Error handling character selection:', error);
         }
     });
     
@@ -701,13 +527,18 @@ io.on('connection', (socket) => {
             
             // Check if all players are ready
             if (room.players.length === room.maxPlayers && room.players.every(p => p.ready)) {
+                // Randomly select a map
+                const maps = ['map1.html', 'map2.html', 'map3.html', 'map4.html', 'map5.html'];
+                const selectedMap = maps[Math.floor(Math.random() * maps.length)];
+                
                 // Start game for all players in room
                 io.to(roomId).emit('gameStart', {
                     roomId: roomId,
-                    players: room.players
+                    players: room.players,
+                    selectedMap: selectedMap
                 });
                 
-                console.log(`Game started in room ${roomId}`);
+                console.log(`Game started in room ${roomId} with map: ${selectedMap}`);
                 
                 // Remove room after game starts
                 gameRooms.delete(roomId);

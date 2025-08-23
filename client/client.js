@@ -1,4 +1,5 @@
-var socket = io();
+// Socket will be initialized by main_menu.js
+// var socket = io();
 
 function hideAllBoxes() {
 	const loginBox = document.getElementById('login');

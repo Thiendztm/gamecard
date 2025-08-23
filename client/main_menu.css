@@ -940,6 +940,162 @@ img {
     color: #4CAF50;
 }
 
+/* Character Selection Styles */
+.character-selection {
+    margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
+}
+
+.character-selection h4 {
+    color: white;
+    text-align: center;
+    margin: 0 0 15px 0;
+    font-size: 16px;
+}
+
+.character-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.character-btn {
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 80px;
+    border: none;
+    outline: none;
+}
+
+.character-btn.selected {
+    background: rgba(52, 74, 91, 0.3);
+}
+
+.character-btn img {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    pointer-events: auto;
+    border-radius: 0;
+    border: none;
+}
+
+.character-btn span {
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.selected-character {
+    color: white;
+    text-align: center;
+    font-size: 14px;
+    font-style: italic;
+}
+
+/* Player Character Selection Styles */
+.player-character-selection {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.character-select-btn {
+    background: rgba(0, 150, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(0, 150, 255, 0.5);
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.character-select-btn:hover {
+    background: rgba(0, 150, 255, 0.3);
+    border-color: #0096ff;
+}
+
+.selected-character-display {
+    color: #ccc;
+    font-size: 11px;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Character Selection Modal Styles */
+.character-selection-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+    position: relative;
+    background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
+    border-radius: 15px;
+    padding: 20px;
+    min-width: 300px;
+    text-align: center;
+}
+
+.modal-content h4 {
+    color: white;
+    margin: 0 0 20px 0;
+    font-size: 18px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.confirm-btn, .cancel-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.confirm-btn {
+    background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
+    color: white;
+}
+
+.cancel-btn {
+    background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
+    color: white;
+}
+
+.cancel-btn:hover {
+    background: #da190b;
+}
+
 .waiting-room-footer {
     padding: 15px 20px;
     display: flex;

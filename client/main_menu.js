@@ -1,15 +1,35 @@
 
-const DEBUG = false;
-const debug = DEBUG ? console.log : () => {};
+const MAIN_MENU_DEBUG = false;
+const debug = MAIN_MENU_DEBUG ? console.log : () => {};
 
 debug('Main menu loaded');
 
 let gameRooms = [];
 let currentRoom = null;
+let socket; // Declare socket variable
 
 function initializeSocket() {
+    // Prevent multiple socket initializations
+    if (window.socketInitialized) {
+        console.log('Socket already initialized, skipping');
+        return;
+    }
+    window.socketInitialized = true;
+    
+    // Initialize socket connection
+    socket = io();
     
     socket.on('connect', () => {
+        console.log('Socket connected');
+    });
+    
+    socket.on('disconnect', () => {
+        console.log('Socket disconnected');
+        // Prevent automatic reconnection loops that could cause page reloads
+        if (socket.connected === false) {
+            console.log('Preventing reconnection loop');
+            return;
+        }
     });
     
     socket.on('error', (data) => {
@@ -48,6 +68,27 @@ function initializeSocket() {
         }
     });
     
+    socket.on('characterSelected', (data) => {
+        if (currentRoom && currentRoom.id === data.roomId) {
+            // Update character display for the player who selected
+            const selectedDisplay = document.getElementById(`player${data.playerPosition}-selected`);
+            if (selectedDisplay) {
+                selectedDisplay.textContent = data.character === 'reimu' ? 'Reimu' : 'Marisa';
+            }
+            
+            // Store the selection for synchronization
+            const roomCharacterSelections = JSON.parse(sessionStorage.getItem('roomCharacterSelections') || '{}');
+            roomCharacterSelections[data.playerId] = data.character;
+            sessionStorage.setItem('roomCharacterSelections', JSON.stringify(roomCharacterSelections));
+            
+            console.log('Character selection received from server:', data);
+            console.log('Updated roomCharacterSelections:', roomCharacterSelections);
+            
+            // Don't trigger character sprite update from main menu - only maps should handle this
+            console.log('Character selection updated, but not triggering sprite update from main menu');
+        }
+    });
+    
     socket.on('avatarUpdated', (data) => {
         if (currentRoom && currentRoom.id === data.roomId) {
             console.log(`Avatar updated for player ${data.playerId}: ${data.avatar}`);
@@ -59,7 +100,11 @@ function initializeSocket() {
     });
     
     socket.on('gameStart', (data) => {
-        window.location.href = 'gamePlay.html';
+        console.log('Game starting, redirecting to map...');
+        // Store game data in session storage for the map page
+        sessionStorage.setItem('gameData', JSON.stringify(data));
+        // Redirect to the randomly selected map
+        window.location.href = data.selectedMap;
     });
     
     socket.on('roomList', (rooms) => {
@@ -68,7 +113,234 @@ function initializeSocket() {
     });
 }
 
+// Character Selection Functions
+let currentPlayer = null;
+let selectedCharacter = null;
+
+function initializeCharacterSelection() {
+    const characterModal = document.getElementById('character-modal');
+    const characterButtons = document.querySelectorAll('.character-select-btn');
+    const characterOptions = document.querySelectorAll('.character-btn');
+    const confirmBtn = document.getElementById('confirm-character');
+    const cancelBtn = document.getElementById('cancel-character');
+    
+    // Clear old character data
+    sessionStorage.removeItem('player1Character');
+    sessionStorage.removeItem('player2Character');
+    sessionStorage.removeItem('player1Name');
+    sessionStorage.removeItem('player2Name');
+    sessionStorage.removeItem('currentPlayerPosition');
+    
+    // Open modal when character select button is clicked
+    characterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+            const playerNumber = btn.dataset.player;
+            
+            console.log('Character button clicked:', playerNumber, 'by user:', user.username);
+            
+            // Check if both players are in room
+            if (!currentRoom || !currentRoom.players || currentRoom.players.length < 2) {
+                showMessage('Cần có đủ 2 người chơi mới có thể chọn nhân vật!', true);
+                return;
+            }
+            
+            // Only allow current user to select their own character
+            const gameData = JSON.parse(sessionStorage.getItem('gameData') || '{}');
+            const players = currentRoom.players || [];
+            
+            // Find current user's position in the game
+            let userPlayerPosition = null;
+            for (let i = 0; i < players.length; i++) {
+                if (players[i].name === user.username) {
+                    userPlayerPosition = (i + 1).toString();
+                    break;
+                }
+            }
+            
+            if (userPlayerPosition === playerNumber) {
+                currentPlayer = playerNumber;
+                characterModal.style.display = 'flex';
+                
+                // Clear previous selection
+                characterOptions.forEach(option => {
+                    option.classList.remove('selected');
+                });
+                selectedCharacter = null;
+                
+                console.log('Character modal opened for player:', playerNumber);
+            } else {
+                showMessage('Bạn chỉ có thể chọn nhân vật cho chính mình!', true);
+            }
+        });
+    });
+    
+    // Handle character option selection
+    characterOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            // Remove selected class from all options
+            characterOptions.forEach(opt => opt.classList.remove('selected'));
+            
+            // Add selected class to clicked option
+            option.classList.add('selected');
+            selectedCharacter = option.dataset.character;
+        });
+    });
+    
+    // Handle confirm button
+    confirmBtn.addEventListener('click', () => {
+        if (selectedCharacter && currentPlayer) {
+            const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+            
+            // Store character selection in room selections for sync
+            const roomCharacterSelections = JSON.parse(sessionStorage.getItem('roomCharacterSelections') || '{}');
+            roomCharacterSelections[user.username] = selectedCharacter;
+            sessionStorage.setItem('roomCharacterSelections', JSON.stringify(roomCharacterSelections));
+            
+            // Emit character selection to server for real-time sync
+            if (socket && currentRoom) {
+                socket.emit('characterSelected', {
+                    roomId: currentRoom.id,
+                    playerId: user.username,
+                    playerPosition: currentPlayer,
+                    character: selectedCharacter
+                });
+            }
+            
+            // Get existing character selections (legacy support)
+            const characterSelections = JSON.parse(sessionStorage.getItem('characterSelections') || '{}');
+            characterSelections[user.username] = selectedCharacter;
+            sessionStorage.setItem('characterSelections', JSON.stringify(characterSelections));
+            
+            console.log('Character selection saved:', characterSelections);
+            
+            // Update display
+            const selectedDisplay = document.getElementById(`player${currentPlayer}-selected`);
+            if (selectedDisplay) {
+                selectedDisplay.textContent = selectedCharacter === 'reimu' ? 'Reimu' : 'Marisa';
+            }
+            
+            // Close modal
+            characterModal.style.display = 'none';
+            showMessage(`Đã chọn nhân vật ${selectedCharacter === 'reimu' ? 'Reimu' : 'Marisa'}!`);
+            
+            // Reset selection
+            currentPlayer = null;
+            selectedCharacter = null;
+        } else {
+            showMessage('Vui lòng chọn một nhân vật!', true);
+        }
+    });
+    
+    // Handle cancel button
+    cancelBtn.addEventListener('click', () => {
+        characterModal.style.display = 'none';
+        currentPlayer = null;
+        selectedCharacter = null;
+    });
+    
+    // Close modal when clicking outside
+    characterModal.addEventListener('click', (e) => {
+        if (e.target === characterModal) {
+            characterModal.style.display = 'none';
+            currentPlayer = null;
+            selectedCharacter = null;
+        }
+    });
+    
+    // Initialize display based on existing selections
+    updateCharacterDisplays();
+}
+
+function updateCharacterDisplays() {
+    // Get room character selections (synced from server)
+    const roomCharacterSelections = JSON.parse(sessionStorage.getItem('roomCharacterSelections') || '{}');
+    
+    // Update displays to show "Chưa chọn" by default
+    const player1Display = document.getElementById('player1-selected');
+    const player2Display = document.getElementById('player2-selected');
+    
+    if (player1Display) {
+        player1Display.textContent = 'Chưa chọn';
+    }
+    
+    if (player2Display) {
+        player2Display.textContent = 'Chưa chọn';
+    }
+    
+    // Update displays based on room players and their character selections
+    if (currentRoom && currentRoom.players) {
+        currentRoom.players.forEach((player, index) => {
+            const playerPosition = index + 1;
+            const display = document.getElementById(`player${playerPosition}-selected`);
+            const playerCharacter = roomCharacterSelections[player.name];
+            
+            if (display) {
+                if (playerCharacter) {
+                    display.textContent = playerCharacter === 'reimu' ? 'Reimu' : 'Marisa';
+                } else {
+                    display.textContent = 'Chưa chọn';
+                }
+            }
+        });
+    }
+}
+
+function showCharacterModal() {
+    const modal = document.getElementById('character-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        selectedCharacter = null;
+        
+        // Clear previous selections in modal
+        const modalButtons = document.querySelectorAll('#character-modal .character-btn');
+        modalButtons.forEach(btn => btn.classList.remove('selected'));
+    }
+}
+
+function hideCharacterModal() {
+    const modal = document.getElementById('character-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        currentSelectingPlayer = null;
+        selectedCharacterInModal = null;
+    }
+}
+
+function loadPlayerCharacterSelections() {
+    // Load player 1 character
+    const player1Character = sessionStorage.getItem('player1Character');
+    const displayElement1 = document.getElementById('player1-selected');
+    if (displayElement1) {
+        if (player1Character) {
+            const characterName = player1Character.charAt(0).toUpperCase() + player1Character.slice(1);
+            displayElement1.textContent = characterName;
+        } else {
+            displayElement1.textContent = 'Chưa chọn';
+        }
+    }
+    
+    // Load player 2 character
+    const player2Character = sessionStorage.getItem('player2Character');
+    const displayElement2 = document.getElementById('player2-selected');
+    if (displayElement2) {
+        if (player2Character) {
+            const characterName = player2Character.charAt(0).toUpperCase() + player2Character.slice(1);
+            displayElement2.textContent = characterName;
+        } else {
+            displayElement2.textContent = 'Chưa chọn';
+        }
+    }
+}
+
 window.onload = function() {
+    // Prevent multiple onload executions
+    if (window.mainMenuLoaded) {
+        console.log('Main menu already loaded, skipping');
+        return;
+    }
+    window.mainMenuLoaded = true;
+    
     const user = sessionStorage.getItem('user');
     if (!user) {
         window.location.href = 'index.html';
@@ -85,6 +357,14 @@ window.onload = function() {
     
     // Set test avatars for specific users
     setTestAvatars();
+    
+    // Clear any old character selections on page load
+    sessionStorage.removeItem('selectedCharacter');
+    sessionStorage.removeItem('gameCharacter');
+    sessionStorage.removeItem('characterSelections');
+    
+    // Initialize character selection
+    initializeCharacterSelection();
     
     // Emit userLogin event to register the user as online
     setTimeout(() => {
@@ -160,9 +440,9 @@ function updateRoomList() {
     const thead = document.createElement('thead');
     thead.innerHTML = `
         <tr>
-            <th>Loại trận</th>
-            <th>Chủ phòng</th>
             <th>Ghi chú</th>
+            <th>Chủ phòng</th>
+            <th>Loại trận</th>
             <th>Trạng thái</th>
             <th>Người chơi</th>
         </tr>
@@ -182,9 +462,9 @@ function updateRoomList() {
         const playerCount = `${room.players.length}/${room.maxPlayers}`;
         
         row.innerHTML = `
-            <td>${room.type}</td>
-            <td>${room.host}</td>
             <td>${room.note}</td>
+            <td>${room.host}</td>
+            <td>${room.type}</td>
             <td>${statusText}</td>
             <td>${playerCount}</td>
         `;
@@ -445,6 +725,9 @@ function updateWaitingRoom() {
         }
     }
     
+    // Update character displays
+    updateCharacterDisplays();
+    
     // Update ready button
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     const currentPlayer = players.find(p => p.id === user.username);
@@ -482,6 +765,15 @@ function toggleReady() {
     const currentPlayer = currentRoom.players.find(p => p.id === user.username);
     
     if (currentPlayer) {
+        // Check if user has selected a character before allowing ready
+        const characterSelections = JSON.parse(sessionStorage.getItem('characterSelections') || '{}');
+        const userCharacter = characterSelections[user.username];
+        
+        if (!userCharacter && !currentPlayer.ready) {
+            showMessage('Bạn phải chọn nhân vật trước khi sẵn sàng!', true);
+            return;
+        }
+        
         const newReadyState = !currentPlayer.ready;
         socket.emit('playerReady', {
             roomId: currentRoom.id,
@@ -1040,24 +1332,23 @@ async function selectAvatar(avatarPath) {
     closeAvatarSelector();
 }
 
-// Function to set test avatars
+// Function to set test avatars for specific users (local implementation)
 async function setTestAvatars() {
     try {
-        const response = await fetch('/api/set-test-avatars', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        // Set predefined avatars for test users locally
+        const testAvatars = {
+            'thienmm': 'https://i.pravatar.cc/150?img=1',
+            'thiendz': 'https://i.pravatar.cc/150?img=2',
+            'testuser1': 'https://i.pravatar.cc/150?img=3',
+            'testuser2': 'https://i.pravatar.cc/150?img=4'
+        };
+        
+        // Store test avatars in local cache
+        Object.entries(testAvatars).forEach(([username, avatarUrl]) => {
+            userAvatars.set(username, avatarUrl);
         });
         
-        const data = await response.json();
-        if (data.success) {
-            console.log('Test avatars set successfully:', data.message);
-            // Clear avatar cache to force reload
-            userAvatars.clear();
-        } else {
-            console.error('Failed to set test avatars:', data.message);
-        }
+        console.log('Test avatars set successfully locally');
     } catch (error) {
         console.error('Error setting test avatars:', error);
     }
