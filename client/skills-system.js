@@ -228,31 +228,75 @@ class SkillsSystem {
     }
 
     showSkillsPanel() {
-        console.log('Showing skills panel:', !!this.skillsPanel);
+        console.log('Showing skills panel:', !!this.skillsPanel, 'isVisible:', this.isVisible);
+        
+        // Force re-find the panel if it's not available
+        if (!this.skillsPanel) {
+            console.log('Skills panel not found, trying to recreate...');
+            this.skillsPanel = document.getElementById('skills-panel');
+            if (!this.skillsPanel) {
+                this.createSkillsPanel();
+            }
+        }
+        
         if (this.skillsPanel) {
-            this.skillsPanel.classList.add('visible');
-            this.isVisible = true;
-            console.log('Skills panel is now visible');
+            // Force visibility regardless of current state
+            this.skillsPanel.style.display = 'block';
+            this.skillsPanel.classList.remove('visible'); // Remove first to ensure clean state
+            setTimeout(() => {
+                this.skillsPanel.classList.add('visible');
+                this.isVisible = true;
+                console.log('Skills panel is now visible');
+            }, 10);
         } else {
-            console.error('Skills panel not found when trying to show!');
+            console.error('Skills panel still not found after recreation attempt!');
         }
     }
 
     hideSkillsPanel() {
-        this.skillsPanel.classList.remove('visible');
+        if (this.skillsPanel) {
+            this.skillsPanel.classList.remove('visible');
+            this.skillsPanel.style.display = 'none';
+        }
         this.isVisible = false;
+    }
+
+    // Reset panel state for new turn
+    resetPanelState() {
+        this.isVisible = false;
+        if (this.skillsPanel) {
+            this.skillsPanel.classList.remove('visible');
+            this.skillsPanel.style.display = 'none';
+        }
     }
 
     selectSkill(skill) {
         if (skill) {
             console.log(`Selected skill: ${skill.name}`);
-            console.log('Combat system available:', !!window.combatSystem);
-            console.log('Combat system object:', window.combatSystem);
             
-            // Trigger combat action with skill
-            if (window.combatSystem) {
-                console.log('Calling combat system selectAction with skill:', skill);
-                window.combatSystem.selectAction('skill', skill);
+            // Convert skill to combat system format
+            const skillData = {
+                id: skill.name.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                name: skill.name,
+                damage: this.parseSkillDamage(skill.name),
+                heal: this.parseSkillHeal(skill.name),
+                mpCost: this.parseSkillMPCost(skill.name),
+                special: this.parseSkillSpecial(skill.name)
+            };
+            
+            // Check MP availability
+            const combatSystem = window.combatSystem || (window.ensureCombatSystem && window.ensureCombatSystem());
+            if (combatSystem) {
+                const currentMP = combatSystem.gameState.playerMP;
+                if (currentMP < skillData.mpCost) {
+                    // Not enough MP - show error message
+                    combatSystem.updateStatus(`Không đủ MP để sử dụng ${skillData.name}! (Cần ${skillData.mpCost} MP, hiện có ${currentMP} MP)`);
+                    this.hideSkillsPanel();
+                    return;
+                }
+                
+                console.log('Calling combat system selectAction with skill:', skillData);
+                combatSystem.selectAction('skill', skillData);
             } else {
                 console.error('Combat system not available!');
             }
@@ -260,6 +304,56 @@ class SkillsSystem {
             // Hide panel after selection
             this.hideSkillsPanel();
         }
+    }
+
+    // Parse skill effects from skill files
+    parseSkillDamage(skillName) {
+        // Default damage values based on skill names
+        const damageMap = {
+            'Dimensional Rift': 15,
+            'Hakurei Amulet': 10,
+            'Heal': 0,
+            'Illusion Laser': 40,
+            'Love Sign "Master Spark"': 30,
+            'Magic Missile': 15,
+            'Spirit Sign "Dream Seal"': 40,
+            'Witch Leyline': 15,
+            'Youkai Buster': 30
+        };
+        return damageMap[skillName] || 10;
+    }
+
+    parseSkillHeal(skillName) {
+        const healMap = {
+            'Hakurei Amulet': 20,
+            'Heal': 20,
+            'Love Sign "Master Spark"': 40
+        };
+        return healMap[skillName] || 0;
+    }
+
+    parseSkillMPCost(skillName) {
+        const mpMap = {
+            'Dimensional Rift': 10,
+            'Hakurei Amulet': 20,
+            'Heal': 10,
+            'Illusion Laser': 60,
+            'Love Sign "Master Spark"': 70,
+            'Magic Missile': 10,
+            'Spirit Sign "Dream Seal"': 80,
+            'Witch Leyline': 20,
+            'Youkai Buster': 50
+        };
+        return mpMap[skillName] || 10;
+    }
+
+    parseSkillSpecial(skillName) {
+        if (skillName === 'Spirit Sign "Dream Seal"') {
+            return 'execute_low_hp';
+        } else if (skillName === 'Witch Leyline') {
+            return 'enhance_attack_2_turns';
+        }
+        return null;
     }
 
     getSkillById(skillId) {

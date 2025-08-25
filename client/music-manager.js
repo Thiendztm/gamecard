@@ -98,7 +98,7 @@ class MusicManager {
         };
         
         localStorage.setItem('musicState', JSON.stringify(state));
-        console.log('Music state saved:', state);
+        // console.log('Music state saved:', state); // Commented out to reduce console spam
     }
 
     // Setup event listeners
@@ -114,12 +114,15 @@ class MusicManager {
         });
 
         // Save state periodically while playing
+        let lastSaveTime = 0;
         this.audio.addEventListener('timeupdate', () => {
             if (this.isPlaying) {
                 this.currentTime = this.audio.currentTime;
                 // Save state every 5 seconds to avoid too frequent saves
-                if (Math.floor(this.currentTime) % 5 === 0) {
+                const currentSecond = Math.floor(this.currentTime);
+                if (currentSecond % 5 === 0 && currentSecond !== lastSaveTime) {
                     this.saveMusicState();
+                    lastSaveTime = currentSecond;
                 }
             }
         });

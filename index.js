@@ -564,7 +564,7 @@ io.on('connection', (socket) => {
     // Handle combat actions
     socket.on('combatAction', (data) => {
         try {
-            const { roomId, playerId, action, turn } = data;
+            const { roomId, playerId, action, skill, turn } = data;
             
             // Get or create combat session
             let session = combatSessions.get(roomId);
@@ -578,24 +578,33 @@ io.on('connection', (socket) => {
                 combatSessions.set(roomId, session);
             }
             
-            // Store player action
+            // Initialize player if not exists
             if (!session.players[playerId]) {
                 session.players[playerId] = {
-                    hp: 100,
+                    socketId: socket.id,
+                    hp: 150,
+                    mp: 150,
                     defenseCount: 3,
-                    socketId: socket.id
+                    currentAction: null,
+                    currentSkill: null,
+                    actionTurn: null,
+                    attackBonus: 0,
+                    attackBonusTurns: 0
                 };
             }
             
+            // Set player action
             session.players[playerId].currentAction = action;
+            session.players[playerId].currentSkill = skill;
             session.players[playerId].actionTurn = turn;
             
-            console.log(`Combat action received: ${playerId} chose ${action} for turn ${turn}`);
+            console.log(`Combat action received: ${playerId} chose ${action}${skill ? ` with skill ${skill.name}` : ''} for turn ${turn}`);
             
-            // Broadcast action to other players in room (without revealing the action)
+            // Broadcast action to other players in room
             socket.to(roomId).emit('combatAction', {
                 playerId: playerId,
-                action: action, // In a real game, you might want to hide this
+                action: action,
+                skill: skill,
                 turn: turn
             });
             
@@ -717,46 +726,105 @@ function resolveCombatTurn(roomId, session, turn) {
         
         const player1Action = player1.currentAction;
         const player2Action = player2.currentAction;
+        const player1Skill = player1.currentSkill;
+        const player2Skill = player2.currentSkill;
         
-        console.log(`Resolving turn ${turn}: ${player1Id}(${player1Action}) vs ${player2Id}(${player2Action})`);
+        console.log(`Resolving turn ${turn}: ${player1Id}(${player1Action}${player1Skill ? ` - ${player1Skill.name}` : ''}) vs ${player2Id}(${player2Action}${player2Skill ? ` - ${player2Skill.name}` : ''})`);
         
-        // Calculate damage
+        // Calculate damage, healing, and MP usage
         let player1Damage = 0;
         let player2Damage = 0;
+        let player1Heal = 0;
+        let player2Heal = 0;
+        let player1MPUsed = 0;
+        let player2MPUsed = 0;
         let player1DefenseUsed = false;
         let player2DefenseUsed = false;
         
-        // Resolve actions
-        if (player1Action === 'attack' && player2Action === 'attack') {
-            // Both attack - both take 10 damage
-            player1Damage = 10;
-            player2Damage = 10;
-        } else if (player1Action === 'attack' && player2Action === 'defense') {
-            // Player1 attacks, Player2 defends - no damage to player2
-            if (player2.defenseCount > 0) {
-                player2DefenseUsed = true;
-                player2.defenseCount--;
-                // No damage to player2
-            } else {
-                // No defense left, take damage
-                player2Damage = 10;
-            }
-        } else if (player1Action === 'defense' && player2Action === 'attack') {
-            // Player1 defends, Player2 attacks - no damage to player1
+        // Calculate Player 1 effects
+        if (player1Action === 'attack') {
+            player1Damage = 10 + (player1.attackBonus || 0);
+        } else if (player1Action === 'defense') {
             if (player1.defenseCount > 0) {
                 player1DefenseUsed = true;
                 player1.defenseCount--;
-                // No damage to player1
+            }
+        } else if (player1Action === 'skill' && player1Skill) {
+            // Check MP availability
+            if (player1.mp >= player1Skill.mpCost) {
+                player1MPUsed = player1Skill.mpCost;
+                player1.mp -= player1MPUsed;
+                
+                // Apply skill effects
+                player1Damage = player1Skill.damage || 0;
+                player1Heal = player1Skill.heal || 0;
+                
+                // Special effects
+                if (player1Skill.special === 'execute_low_hp' && player2.hp < 50) {
+                    player1Damage = player2.hp; // Instant kill
+                } else if (player1Skill.special === 'enhance_attack_2_turns') {
+                    player1.attackBonus = 5;
+                    player1.attackBonusTurns = 2;
+                }
             } else {
-                // No defense left, take damage
-                player1Damage = 10;
+                // Not enough MP, treat as basic attack
+                player1Damage = 10 + (player1.attackBonus || 0);
             }
         }
-        // If both defend, no damage to anyone
         
-        // Apply damage
-        player1.hp = Math.max(0, player1.hp - player1Damage);
-        player2.hp = Math.max(0, player2.hp - player2Damage);
+        // Calculate Player 2 effects (with AI skill selection if no skill chosen)
+        if (player2Action === 'attack') {
+            player2Damage = 10 + (player2.attackBonus || 0);
+        } else if (player2Action === 'defense') {
+            if (player2.defenseCount > 0) {
+                player2DefenseUsed = true;
+                player2.defenseCount--;
+            }
+        } else if (player2Action === 'skill') {
+            // If no skill was provided, select random AI skill
+            if (!player2Skill && player2.mp > 0) {
+                player2Skill = selectRandomAISkill(player2.mp);
+            }
+            
+            if (player2Skill) {
+                // Check MP availability
+                if (player2.mp >= player2Skill.mpCost) {
+                    player2MPUsed = player2Skill.mpCost;
+                    player2.mp -= player2MPUsed;
+                    
+                    // Apply skill effects
+                    player2Damage = player2Skill.damage || 0;
+                    player2Heal = player2Skill.heal || 0;
+                    
+                    // Special effects
+                    if (player2Skill.special === 'execute_low_hp' && player1.hp < 50) {
+                        player2Damage = player1.hp; // Instant kill
+                    } else if (player2Skill.special === 'enhance_attack_2_turns') {
+                        player2.attackBonus = 5;
+                        player2.attackBonusTurns = 2;
+                    }
+                } else {
+                    // Not enough MP, treat as basic attack
+                    player2Damage = 10 + (player2.attackBonus || 0);
+                }
+            } else {
+                // No skill available, treat as basic attack
+                player2Damage = 10 + (player2.attackBonus || 0);
+            }
+        }
+        
+        // Apply defense blocking
+        if (player1DefenseUsed && player2Damage > 0) {
+            player2Damage = 0; // Block damage
+        }
+        if (player2DefenseUsed && player1Damage > 0) {
+            player1Damage = 0; // Block damage
+        }
+        
+        // Apply damage and healing
+        // Player1 takes player2Damage, Player2 takes player1Damage
+        player1.hp = Math.max(0, Math.min(150, player1.hp - player2Damage + player1Heal));
+        player2.hp = Math.max(0, Math.min(150, player2.hp - player1Damage + player2Heal));
         
         // Prepare resolution data for each player
         const player1Resolution = {
@@ -764,10 +832,22 @@ function resolveCombatTurn(roomId, session, turn) {
             opponentAction: player2Action,
             playerDamage: player1Damage,
             opponentDamage: player2Damage,
+            playerHeal: player1Heal,
+            opponentHeal: player2Heal,
+            playerMPUsed: player1MPUsed,
+            opponentMPUsed: player2MPUsed,
             playerDefenseUsed: player1DefenseUsed,
             opponentDefenseUsed: player2DefenseUsed,
+            playerSkill: player1Skill,
+            opponentSkill: player2Skill,
             playerHP: player1.hp,
             opponentHP: player2.hp,
+            playerMP: player1.mp,
+            opponentMP: player2.mp,
+            playerAttackBonus: player1.attackBonus,
+            playerAttackBonusTurns: player1.attackBonusTurns,
+            opponentAttackBonus: player2.attackBonus,
+            opponentAttackBonusTurns: player2.attackBonusTurns,
             turn: turn
         };
         
@@ -776,10 +856,22 @@ function resolveCombatTurn(roomId, session, turn) {
             opponentAction: player1Action,
             playerDamage: player2Damage,
             opponentDamage: player1Damage,
+            playerHeal: player2Heal,
+            opponentHeal: player1Heal,
+            playerMPUsed: player2MPUsed,
+            opponentMPUsed: player1MPUsed,
             playerDefenseUsed: player2DefenseUsed,
             opponentDefenseUsed: player1DefenseUsed,
+            playerSkill: player2Skill,
+            opponentSkill: player1Skill,
             playerHP: player2.hp,
             opponentHP: player1.hp,
+            playerMP: player2.mp,
+            opponentMP: player1.mp,
+            playerAttackBonus: player2.attackBonus,
+            playerAttackBonusTurns: player2.attackBonusTurns,
+            opponentAttackBonus: player1.attackBonus,
+            opponentAttackBonusTurns: player1.attackBonusTurns,
             turn: turn
         };
         
@@ -797,20 +889,23 @@ function resolveCombatTurn(roomId, session, turn) {
         
         // Check for game over
         if (player1.hp <= 0 || player2.hp <= 0) {
-            const winner = player1.hp > 0 ? player1Id : player2Id;
+            const winnerId = player1.hp > 0 ? player1Id : player2Id;
+            const winnerName = winnerId; // Use player ID as name for now
             
             // Send game over to both players
             if (player1Socket) {
                 player1Socket.emit('gameOver', { 
                     winner: player1.hp > 0 ? 'player' : 'opponent',
-                    winnerId: winner
+                    winnerId: winnerId,
+                    winnerName: winnerName
                 });
             }
             
             if (player2Socket) {
                 player2Socket.emit('gameOver', { 
                     winner: player2.hp > 0 ? 'player' : 'opponent',
-                    winnerId: winner
+                    winnerId: winnerId,
+                    winnerName: winnerName
                 });
             }
             
@@ -818,20 +913,63 @@ function resolveCombatTurn(roomId, session, turn) {
             combatSessions.delete(roomId);
             console.log(`Game over in room ${roomId}. Winner: ${winner}`);
         } else {
+            // Decrease attack bonus turn counters AFTER combat resolution
+            // But don't decrease on the turn when Witch Leyline was just used
+            if (player1.attackBonusTurns > 0 && !(player1Skill && player1Skill.special === 'enhance_attack_2_turns')) {
+                player1.attackBonusTurns--;
+                if (player1.attackBonusTurns === 0) {
+                    player1.attackBonus = 0;
+                }
+            }
+            if (player2.attackBonusTurns > 0 && !(player2Skill && player2Skill.special === 'enhance_attack_2_turns')) {
+                player2.attackBonusTurns--;
+                if (player2.attackBonusTurns === 0) {
+                    player2.attackBonus = 0;
+                }
+            }
+            
             // Clear actions for next turn
             player1.currentAction = null;
             player2.currentAction = null;
+            player1.currentSkill = null;
+            player2.currentSkill = null;
             player1.actionTurn = null;
             player2.actionTurn = null;
             
             session.currentTurn++;
         }
         
-        console.log(`Turn ${turn} resolved. Player1 HP: ${player1.hp}, Player2 HP: ${player2.hp}`);
+        console.log(`Turn ${turn} resolved. Player1 HP: ${player1.hp} MP: ${player1.mp}, Player2 HP: ${player2.hp} MP: ${player2.mp}`);
         
     } catch (error) {
         console.error('Error in combat turn resolution:', error);
     }
+}
+
+// AI skill selection function
+function selectRandomAISkill(availableMP) {
+    const aiSkills = [
+        { id: 'dimensional_rift', name: 'Dimensional Rift', damage: 15, heal: 0, mpCost: 10, special: null },
+        { id: 'hakurei_amulet', name: 'Hakurei Amulet', damage: 10, heal: 20, mpCost: 20, special: null },
+        { id: 'heal', name: 'Heal', damage: 0, heal: 20, mpCost: 10, special: null },
+        { id: 'illusion_laser', name: 'Illusion Laser', damage: 40, heal: 0, mpCost: 60, special: null },
+        { id: 'love_sign_master_spark', name: 'Love Sign "Master Spark"', damage: 30, heal: 40, mpCost: 70, special: null },
+        { id: 'magic_missile', name: 'Magic Missile', damage: 15, heal: 0, mpCost: 10, special: null },
+        { id: 'spirit_sign_dream_seal', name: 'Spirit Sign "Dream Seal"', damage: 40, heal: 0, mpCost: 80, special: 'execute_low_hp' },
+        { id: 'witch_leyline', name: 'Witch Leyline', damage: 15, heal: 0, mpCost: 20, special: 'enhance_attack' },
+        { id: 'youkai_buster', name: 'Youkai Buster', damage: 30, heal: 0, mpCost: 50, special: null }
+    ];
+
+    // Filter skills by available MP
+    const affordableSkills = aiSkills.filter(skill => skill.mpCost <= availableMP);
+    
+    if (affordableSkills.length === 0) {
+        return null;
+    }
+
+    // Random selection with some preference for balanced skills
+    const randomIndex = Math.floor(Math.random() * affordableSkills.length);
+    return affordableSkills[randomIndex];
 }
 
 // Helper function to clean up empty rooms and invalid players

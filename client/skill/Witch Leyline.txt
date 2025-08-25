@@ -1,3 +1,4 @@
 Witch Leyline
 Cường hóa đòn đánh 2 lượt, gây 15 sát thương
 Tốn 20 MP.
+Special: enhance_attack_2_turns
