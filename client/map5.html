@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Map 5</title>
-    <link rel="stylesheet" href="audio.css">
-    <link rel="stylesheet" href="character-sprites.css">
+    <link rel="stylesheet" href="css/audio.css">
+    <link rel="stylesheet" href="css/character-sprites.css">
     <script src="/socket.io/socket.io.js"></script>
     <script src="character-functions.js" defer></script>
+    <script src="music-manager.js" defer></script>
+    <script src="memory-optimization.js" defer></script>
+    <script src="skills-system.js" defer></script>
+    <script src="combatSystem.js" defer></script>
 </head>
-<body style="background-image: url('/DesignHud/map55.png');background-repeat: no-repeat; background-size: cover;">
+<body style="background-image: url('/DesignHud/map5.png');background-repeat: no-repeat; background-size: cover; background-position: center; height: 100vh; width: 100vw; margin: 0; padding: 0;">
     <div class="music-control">
         <div class="music-icon" id="musicIcon">🎵</div>
         <div class="volume-control">
@@ -27,7 +31,7 @@
         <div class="user-section"></div>
     </div>
     
-    <audio id="backgroundMusic" loop>
+    <audio id="backgroundMusic" loop preload="none">
         <source src="/audio/16. An Eternity More Transient than Scarlet.mp3" type="audio/mpeg">
     </audio>
     
@@ -89,6 +93,34 @@
         
         // Socket connection for real-time character updates
         const socket = io();
+        
+        // Make socket available globally
+        window.socket = socket;
+        
+        // Set up room and player IDs for combat system
+        window.currentRoomId = sessionStorage.getItem('currentRoomId');
+        window.currentPlayerId = sessionStorage.getItem('currentPlayerId');
+        
+        // Also try to get from gameData if direct values are null
+        if (!window.currentRoomId || !window.currentPlayerId) {
+            const gameData = JSON.parse(sessionStorage.getItem('gameData') || '{}');
+            if (gameData.roomId) {
+                window.currentRoomId = gameData.roomId;
+                sessionStorage.setItem('currentRoomId', gameData.roomId);
+            }
+            if (gameData.players && gameData.players.length > 0) {
+                const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+                window.currentPlayerId = user.username;
+                sessionStorage.setItem('currentPlayerId', user.username);
+            }
+        }
+        
+        console.log('Map initialized with:', {
+            roomId: window.currentRoomId,
+            playerId: window.currentPlayerId,
+            gameData: sessionStorage.getItem('gameData'),
+            user: sessionStorage.getItem('user')
+        });
         
         // Listen for character selection updates
         socket.on('characterSelected', (data) => {

@@ -100,6 +100,9 @@ const gameRooms = new Map();
 const playerRooms = new Map(); // Track which room each player is in
 const playerSockets = new Map(); // Track socket ID for each player
 
+// Combat game sessions
+const combatSessions = new Map(); // Track active combat sessions
+
 let emailConfig;
 try {
     emailConfig = require('./email-config.js');
@@ -558,6 +561,78 @@ io.on('connection', (socket) => {
         socket.emit('roomList', Array.from(gameRooms.values()));
     });
     
+    // Handle combat actions
+    socket.on('combatAction', (data) => {
+        try {
+            const { roomId, playerId, action, turn } = data;
+            
+            // Get or create combat session
+            let session = combatSessions.get(roomId);
+            if (!session) {
+                session = {
+                    roomId: roomId,
+                    players: {},
+                    currentTurn: 1,
+                    gameActive: true
+                };
+                combatSessions.set(roomId, session);
+            }
+            
+            // Store player action
+            if (!session.players[playerId]) {
+                session.players[playerId] = {
+                    hp: 100,
+                    defenseCount: 3,
+                    socketId: socket.id
+                };
+            }
+            
+            session.players[playerId].currentAction = action;
+            session.players[playerId].actionTurn = turn;
+            
+            console.log(`Combat action received: ${playerId} chose ${action} for turn ${turn}`);
+            
+            // Broadcast action to other players in room (without revealing the action)
+            socket.to(roomId).emit('combatAction', {
+                playerId: playerId,
+                action: action, // In a real game, you might want to hide this
+                turn: turn
+            });
+            
+            // Check if both players have acted
+            const playerIds = Object.keys(session.players);
+            if (playerIds.length === 2) {
+                const allActed = playerIds.every(id => 
+                    session.players[id].currentAction && 
+                    session.players[id].actionTurn === turn
+                );
+                
+                if (allActed) {
+                    // Resolve turn automatically
+                    resolveCombatTurn(roomId, session, turn);
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error handling combat action:', error);
+            socket.emit('error', { message: 'Lỗi xử lý hành động chiến đấu' });
+        }
+    });
+    
+    // Handle turn resolution request
+    socket.on('resolveTurn', (data) => {
+        try {
+            const { roomId, turn } = data;
+            const session = combatSessions.get(roomId);
+            
+            if (session) {
+                resolveCombatTurn(roomId, session, turn);
+            }
+        } catch (error) {
+            console.error('Error resolving turn:', error);
+        }
+    });
+    
     // Handle disconnect
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
@@ -607,8 +682,157 @@ io.on('connection', (socket) => {
         }
         
         playerRooms.delete(socket.id);
+        
+        // Clean up combat sessions
+        for (const [roomId, session] of combatSessions.entries()) {
+            for (const [playerId, playerData] of Object.entries(session.players)) {
+                if (playerData.socketId === socket.id) {
+                    delete session.players[playerId];
+                    console.log(`Player ${playerId} removed from combat session ${roomId}`);
+                }
+            }
+            
+            // Remove empty combat sessions
+            if (Object.keys(session.players).length === 0) {
+                combatSessions.delete(roomId);
+                console.log(`Combat session ${roomId} deleted (empty)`);
+            }
+        }
     });
 });
+
+// Combat turn resolution function
+function resolveCombatTurn(roomId, session, turn) {
+    try {
+        const playerIds = Object.keys(session.players);
+        if (playerIds.length !== 2) {
+            console.error('Invalid number of players for combat resolution');
+            return;
+        }
+        
+        const player1Id = playerIds[0];
+        const player2Id = playerIds[1];
+        const player1 = session.players[player1Id];
+        const player2 = session.players[player2Id];
+        
+        const player1Action = player1.currentAction;
+        const player2Action = player2.currentAction;
+        
+        console.log(`Resolving turn ${turn}: ${player1Id}(${player1Action}) vs ${player2Id}(${player2Action})`);
+        
+        // Calculate damage
+        let player1Damage = 0;
+        let player2Damage = 0;
+        let player1DefenseUsed = false;
+        let player2DefenseUsed = false;
+        
+        // Resolve actions
+        if (player1Action === 'attack' && player2Action === 'attack') {
+            // Both attack - both take 10 damage
+            player1Damage = 10;
+            player2Damage = 10;
+        } else if (player1Action === 'attack' && player2Action === 'defense') {
+            // Player1 attacks, Player2 defends - no damage to player2
+            if (player2.defenseCount > 0) {
+                player2DefenseUsed = true;
+                player2.defenseCount--;
+                // No damage to player2
+            } else {
+                // No defense left, take damage
+                player2Damage = 10;
+            }
+        } else if (player1Action === 'defense' && player2Action === 'attack') {
+            // Player1 defends, Player2 attacks - no damage to player1
+            if (player1.defenseCount > 0) {
+                player1DefenseUsed = true;
+                player1.defenseCount--;
+                // No damage to player1
+            } else {
+                // No defense left, take damage
+                player1Damage = 10;
+            }
+        }
+        // If both defend, no damage to anyone
+        
+        // Apply damage
+        player1.hp = Math.max(0, player1.hp - player1Damage);
+        player2.hp = Math.max(0, player2.hp - player2Damage);
+        
+        // Prepare resolution data for each player
+        const player1Resolution = {
+            playerAction: player1Action,
+            opponentAction: player2Action,
+            playerDamage: player1Damage,
+            opponentDamage: player2Damage,
+            playerDefenseUsed: player1DefenseUsed,
+            opponentDefenseUsed: player2DefenseUsed,
+            playerHP: player1.hp,
+            opponentHP: player2.hp,
+            turn: turn
+        };
+        
+        const player2Resolution = {
+            playerAction: player2Action,
+            opponentAction: player1Action,
+            playerDamage: player2Damage,
+            opponentDamage: player1Damage,
+            playerDefenseUsed: player2DefenseUsed,
+            opponentDefenseUsed: player1DefenseUsed,
+            playerHP: player2.hp,
+            opponentHP: player1.hp,
+            turn: turn
+        };
+        
+        // Send resolution to each player
+        const player1Socket = io.sockets.sockets.get(player1.socketId);
+        const player2Socket = io.sockets.sockets.get(player2.socketId);
+        
+        if (player1Socket) {
+            player1Socket.emit('turnResolved', player1Resolution);
+        }
+        
+        if (player2Socket) {
+            player2Socket.emit('turnResolved', player2Resolution);
+        }
+        
+        // Check for game over
+        if (player1.hp <= 0 || player2.hp <= 0) {
+            const winner = player1.hp > 0 ? player1Id : player2Id;
+            
+            // Send game over to both players
+            if (player1Socket) {
+                player1Socket.emit('gameOver', { 
+                    winner: player1.hp > 0 ? 'player' : 'opponent',
+                    winnerId: winner
+                });
+            }
+            
+            if (player2Socket) {
+                player2Socket.emit('gameOver', { 
+                    winner: player2.hp > 0 ? 'player' : 'opponent',
+                    winnerId: winner
+                });
+            }
+            
+            // Clean up session
+            combatSessions.delete(roomId);
+            console.log(`Game over in room ${roomId}. Winner: ${winner}`);
+        } else {
+            // Clear actions for next turn
+            player1.currentAction = null;
+            player2.currentAction = null;
+            player1.actionTurn = null;
+            player2.actionTurn = null;
+            
+            session.currentTurn++;
+        }
+        
+        console.log(`Turn ${turn} resolved. Player1 HP: ${player1.hp}, Player2 HP: ${player2.hp}`);
+        
+    } catch (error) {
+        console.error('Error in combat turn resolution:', error);
+    }
+}
 
 // Helper function to clean up empty rooms and invalid players
 function cleanupRooms() {
@@ -649,4 +873,5 @@ function cleanupRooms() {
 
 server.listen(4000, () => {
     console.log('Listening on port 4000');
+    console.log('Combat system enabled');
 });

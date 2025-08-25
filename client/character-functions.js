@@ -307,13 +307,13 @@ class CharacterManager {
         const hpText = document.createElement('div');
         hpText.className = 'stat-text hp-text';
         hpText.id = 'user-hp-text';
-        hpText.textContent = 'HP: 100';
+        hpText.textContent = 'HP: 150';
 
         // Create MP text
         const mpText = document.createElement('div');
         mpText.className = 'stat-text mp-text';
         mpText.id = 'user-mp-text';
-        mpText.textContent = 'MP: 100';
+        mpText.textContent = 'MP: 150';
 
         // Add to container
         statsContainer.appendChild(hpText);
@@ -368,6 +368,12 @@ class CharacterManager {
         
         opponentSprite.onload = function() {
             console.log('Opponent sprite loaded successfully:', this.src);
+            // Show action panel after opponent sprite loads
+            const actionPanel = document.querySelector('.action-panel');
+            if (actionPanel) {
+                actionPanel.classList.add('show');
+                console.log('Action panel shown after opponent sprite loaded');
+            }
         };
         
         document.body.appendChild(opponentSprite);
@@ -393,13 +399,13 @@ class CharacterManager {
         const hpText = document.createElement('div');
         hpText.className = 'stat-text hp-text';
         hpText.id = 'opponent-hp-text';
-        hpText.textContent = 'HP: 100';
+        hpText.textContent = 'HP: 150';
 
         // Create MP text
         const mpText = document.createElement('div');
         mpText.className = 'stat-text mp-text';
         mpText.id = 'opponent-mp-text';
-        mpText.textContent = 'MP: 100';
+        mpText.textContent = 'MP: 150';
 
         // Add to container
         statsContainer.appendChild(hpText);

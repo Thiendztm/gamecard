@@ -103,6 +103,17 @@ function initializeSocket() {
         console.log('Game starting, redirecting to map...');
         // Store game data in session storage for the map page
         sessionStorage.setItem('gameData', JSON.stringify(data));
+        
+        // Store room ID and current player ID for combat system
+        sessionStorage.setItem('currentRoomId', data.roomId);
+        const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+        sessionStorage.setItem('currentPlayerId', user.username);
+        
+        console.log('Combat session data stored:', {
+            roomId: data.roomId,
+            playerId: user.username
+        });
+        
         // Redirect to the randomly selected map
         window.location.href = data.selectedMap;
     });
