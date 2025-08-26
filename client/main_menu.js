@@ -842,7 +842,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (closeRoomBtn) {
-        closeRoomBtn.onclick = closeRoomPanel;
+        closeRoomBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeRoomPanel();
+        };
     }
     
     if (hostDuelBtn) {
@@ -865,7 +869,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (roomPanelOverlay) {
-        roomPanelOverlay.onclick = closeRoomPanel;
+        roomPanelOverlay.onclick = function(e) {
+            // Only close if clicking on the overlay itself, not its children
+            if (e.target === roomPanelOverlay) {
+                closeRoomPanel();
+            }
+        };
     }
     
     if (closeWaitingRoomBtn) {

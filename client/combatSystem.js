@@ -225,6 +225,11 @@ class CombatSystem {
             return;
         }
 
+        // Play selection sound
+        if (window.sfxManager) {
+            window.sfxManager.playSelect();
+        }
+
         this.gameState.playerAction = action;
         this.gameState.playerSkill = skillData;
         this.gameState.waitingForOpponent = true;
@@ -390,12 +395,18 @@ class CombatSystem {
         // Cancel button
         const cancelBtn = modalContent.querySelector('.cancel-skill-btn');
         cancelBtn.addEventListener('click', () => {
+            if (window.sfxManager) {
+                window.sfxManager.playCancel();
+            }
             document.body.removeChild(modal);
         });
 
         // Close on outside click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
+                if (window.sfxManager) {
+                    window.sfxManager.playCancel();
+                }
                 document.body.removeChild(modal);
             }
         });
@@ -437,6 +448,9 @@ class CombatSystem {
     // Resolve turn with results from server
     resolveTurn(data) {
         const { playerDamage, opponentDamage, playerDefenseUsed, opponentDefenseUsed, playerHeal, opponentHeal, playerMPUsed, opponentMPUsed, playerAttackBonus, playerAttackBonusTurns, opponentAttackBonus, opponentAttackBonusTurns } = data;
+
+        // Play combat sounds based on actions
+        this.playCombatSounds(data);
 
         // Update HP (damage and healing)
         // Player takes opponentDamage, Opponent takes playerDamage
@@ -649,6 +663,12 @@ class CombatSystem {
         });
     }
 
+    // Play combat sounds based on turn results (simplified to only use select/cancel per hd.txt)
+    playCombatSounds(data) {
+        // Removed combat-specific sounds, only using select/cancel as per hd.txt requirements
+        // Combat sounds will be handled by basic UI interactions only
+    }
+
     // Clear action selection
     clearActionSelection() {
         const actionItems = document.querySelectorAll('.action-item');
@@ -656,6 +676,11 @@ class CombatSystem {
             item.classList.remove('selected');
             item.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
             item.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            
+            // Reset skill button text to remove previous skill name
+            if (item.textContent.includes('Kỹ năng') || item.innerHTML.includes('Kỹ năng')) {
+                item.innerHTML = 'Kỹ năng';
+            }
         });
     }
 
@@ -669,9 +694,9 @@ class CombatSystem {
         let message = '';
         
         if (winner === 'player') {
-            message = '🎉 Bạn đã thắng! 🎉';
+            message = 'Bạn đã thắng!';
         } else {
-            message = '💀 Bạn đã thua! 💀';
+            message = 'Bạn đã thua!';
         }
 
         this.updateStatus(message);
