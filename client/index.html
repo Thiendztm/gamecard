@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="password-managers" content="disabled">
+    <title>Board Card Game</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./client.js" defer></script>
+</head>
+<body>
+    <div id="logo-page">
+        <img src="/DesignHud/5.png" width="900" height="700" alt="Logo" id="logo-img">
+    </div>
+
+    <div id="game-info-panel">
+        <div class="panel-header">
+            <h2>INTRODUCE</h2>
+            <div class="header-line"></div>
+        </div>
+        <div class="panel-content">
+            <div class="game-description">
+                <h3>Giới thiệu</h3>
+                <p>Là một trò chơi thể loại thẻ bài fanmade từ series game có tiếng Touhou của nhà phát triển game ZUN.   </p>
+            </div>
+            
+            <div class="game-features">
+                <h3>Gameplay</h3>
+                <ul>
+
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-box">
+        <div id="login">
+            <div class="background"></div>
+            <div class="username-row">
+                <span class="username-lb">TÀI KHOẢN</span>
+                <input class="username-txt" type="text" maxlength="15" autocomplete="off" data-lpignore="true">
+            </div>
+            <div class="password-row">
+                <span class="password-lb">MẬT KHẨU</span>
+                <input class="password-txt" type="password" maxlength="15" autocomplete="new-password" data-lpignore="true">
+            </div>
+            <div class="remember-row">
+                <input class="remember-cb" type="checkbox" checked>
+                <span class="remember-lb">Lưu lần đăng nhập kế tiếp</span>
+            </div>
+            <input class="login-btn" type="submit" value="Đăng nhập">
+            <div class="reg-fg-row">
+                <span class="register-lb">Đăng kí</span>
+                <span class="forgot-password-lb">Quên mật khẩu</span>
+            </div>
+            
+        </div>
+
+        <div id="Register">
+            <div class="background"></div>
+            <div class="username-row">
+                <span class="username-lb">TÀI KHOẢN</span>
+                <input class="username-txt" type="text" maxlength="15" required autocomplete="off" data-lpignore="true">
+            </div>
+            <div class="password-row">
+                <span class="password-lb">MẬT KHẨU</span>
+                <input class="password-txt" type="password" maxlength="15" required autocomplete="new-password" data-lpignore="true">
+            </div>
+            <div class="email-row">
+                <span class="email-lb">Email</span>
+                <input class="email-txt" type="email" required>
+            </div>
+            <div class="back-reg-row">
+                <span class="back-btn">Quay lại</span>
+                <input class="register-btn" type="submit" value="Đăng kí">
+            </div>
+         </div>
+
+         <div id="Verification" style="display: none;">
+            <div class="background"></div>
+            <div class="verification-info">
+                <span class="desc-txt">Mã xác thực đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư và nhập mã bên dưới:</span>
+            </div>
+            <div class="verification-row">
+                <span class="verification-lb">MÃ XÁC THỰC</span>
+                <input class="verification-txt" type="text" maxlength="6">
+            </div>
+            <div class="back-verify-row">
+                <span class="back-btn">Quay lại</span>
+                <input class="verify-btn" type="submit" value="Xác thực">
+            </div>
+        </div>
+
+          <div id="Forgot-Password">
+            <div class="background"></div>
+            <span class="desc-txt">Nhập email mà bạn từng đăng kí. Sẽ có một e-mail gửi về với link để reset lại mật khẩu của bạn</span>
+            <div class="email-row">
+                <span class="email-lb">Email</span>
+                <input class="email-txt" type="text">
+            </div>
+            <div class="back-reset-row">
+                <span class="back-btn">Quay lại</span>
+                <input class="reset-password-btn" type="submit" value="Reset">
+            </div>
+        </div>
+
+        <div id="logged-in">
+            <div id="background"></div>
+            <span id="logged-in-as-lb">Đã đăng nhập bởi:</span>
+            <span id="username-txt"></span>
+            <span class="logout-btn">Đăng xuất</span>
+        </div>
+    </div>
+</body>
+</html>

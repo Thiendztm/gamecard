@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Touhou FM: Card Battle</title>
+    <link rel="stylesheet" href="settings.css">
+    <script src="/scripts/bgm.js" defer></script>
+</head>
+<body>
+    <div id="settings-overlay"></div>
+    <div class="settings-container">
+        <div class="settings-header">
+            <h1 class="settings-title">Settings</h1>
+            <button class="close-settings" id="exit-btn" title="Back to Menu">×</button>
+        </div>
+        <div class="settings-content">
+            <div class="settings-section">
+                <div class="section-title">Âm Thanh</div>
+                <div class="control-row">
+                    <label class="control-label" for="bgm-volume">BGM Volume</label>
+                    <div class="range-wrap">
+                        <input type="range" id="bgm-volume" min="0" max="100" step="1">
+                        <span class="range-value" id="bgm-value">60%</span>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <label class="control-label" for="sfx-volume">SFX Volume</label>
+                    <div class="range-wrap">
+                        <input type="range" id="sfx-volume" min="0" max="100" step="1">
+                        <span class="range-value" id="sfx-value">80%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="settings-footer">
+            <button class="btn ghost" id="default-btn">Mặc định</button>
+            <button class="btn primary" id="save-btn">Lưu</button>
+        </div>
+    </div>
+    <script src="settings.js"></script>
+</body>
+</html>

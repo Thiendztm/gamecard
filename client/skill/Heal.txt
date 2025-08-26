@@ -1,0 +1,3 @@
+Heal
+Hồi 20 máu
+Tốn 10 MP.

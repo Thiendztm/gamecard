@@ -1,0 +1,2 @@
+cancel00.way sẽ dành cho các nút dạng quay về hoặc quay lại
+select00.way sẽ dành cho các nút chọn hoặc click vào để thực mở hay lựa chọn gì đó

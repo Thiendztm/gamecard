@@ -1,0 +1,69 @@
+body {
+    margin:0;
+    padding:0;
+    font-family: 'montserrat', 'Segoe UI', Arial, sans-serif;
+    background: url(./assets/background4.jpg) center/cover fixed no-repeat;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    -webkit-font-smoothing:antialiased;
+}
+
+#settings-overlay {
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.78);
+    backdrop-filter:blur(5px);
+    z-index:0;
+}
+
+.settings-container {
+    position:relative;
+    width:800px;
+    max-width:92vw;
+    min-height:480px;
+    background:linear-gradient(135deg, rgba(0,20,20,0.9), rgba(0,40,40,0.9));
+    border-radius:20px;
+    padding:28px 34px 70px 34px;
+    box-shadow:0 10px 30px rgba(0,0,0,.55), 0 0 0 1px rgba(0,255,200,0.18), 0 0 25px -6px #00ffc688;
+    display:flex;
+    flex-direction:column;
+    z-index:1;
+    overflow:hidden;
+}
+
+.settings-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.settings-title { margin:0; font-size:30px; font-weight:700; letter-spacing:2px; color:#00ffff; text-shadow:0 0 12px #00ffc6; }
+
+.close-settings { background:rgba(0,0,0,0.5); border:1px solid #00ffc6; color:#00ffc6; width:46px; height:46px; border-radius:12px; font-size:30px; line-height:40px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.25s; }
+.close-settings:hover { background:#00ffc620; box-shadow:0 0 10px #00ffc6; }
+
+.settings-content { flex:1; overflow-y:auto; padding-top:10px; }
+.settings-content::-webkit-scrollbar { width:8px; }
+.settings-content::-webkit-scrollbar-track { background:rgba(0,0,0,0.25); border-radius:6px; }
+.settings-content::-webkit-scrollbar-thumb { background:#00ffc6; border-radius:6px; }
+
+.settings-section { background:rgba(0,0,0,0.45); border:1px solid rgba(0,255,200,0.25); border-radius:14px; padding:24px 28px 10px 28px; margin-bottom:26px; position:relative; }
+.section-title { position:absolute; top:-14px; left:20px; background:#000; padding:4px 14px; font-size:15px; letter-spacing:1px; text-transform:uppercase; color:#00ffff; font-weight:600; border:1px solid #00ffc6; border-radius:20px; box-shadow:0 0 8px #00ffc680; }
+
+.control-row { display:flex; align-items:center; gap:28px; margin-bottom:28px; flex-wrap:wrap; }
+.control-label { min-width:160px; font-weight:600; letter-spacing:1px; color:#d9ffff; font-size:15px; }
+.range-wrap { display:flex; align-items:center; gap:14px; }
+.range-wrap input[type=range] { width:240px; height:6px; appearance:none; background:linear-gradient(90deg,#003d3d,#008c8c); border-radius:4px; outline:none; box-shadow:0 0 0 1px #00ffc640, 0 0 6px #00ffc640 inset; cursor:pointer; }
+.range-wrap input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#00ffff; border:2px solid #003030; box-shadow:0 0 8px #00ffff; transition:.25s; }
+.range-wrap input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.15); }
+.range-value { font-weight:700; font-size:14px; color:#00ffc6; min-width:50px; text-align:right; text-shadow:0 0 6px #00ffc6; }
+
+.settings-footer { position:absolute; bottom:0; left:0; right:0; padding:16px 34px 24px 34px; display:flex; justify-content:flex-end; gap:16px; background:linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0)); }
+.btn { font-family:inherit; font-weight:600; letter-spacing:1px; padding:11px 28px; border-radius:10px; font-size:14px; cursor:pointer; border:1px solid #00ffc6; background:rgba(0,0,0,0.55); color:#00ffff; text-transform:uppercase; transition:.3s; box-shadow:0 0 8px #00ffc640 inset; }
+.btn.primary { background:linear-gradient(135deg,#00ffc6,#00aa8f); color:#002422; border:none; box-shadow:0 0 12px #00ffc6b0, 0 0 4px #00ffc670 inset; }
+.btn.primary:hover { filter:brightness(1.1); box-shadow:0 0 16px #00fff0; }
+.btn.ghost:hover { background:#00ffc620; box-shadow:0 0 10px #00ffc6; }
+
+@media (max-width:680px){
+    .settings-container{width:96vw;padding:26px 22px 70px 22px;}
+    .control-row{gap:14px;margin-bottom:22px;}
+    .control-label{min-width:120px;}
+    .range-wrap input[type=range]{width:180px;}
+}

@@ -1,0 +1,341 @@
+/* Reset body styles for map pages */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.music-control {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.music-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 20px;
+    transition: all 0.3s ease;
+}
+
+.music-icon:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+}
+
+.volume-control {
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.music-control:hover .volume-control {
+    opacity: 1;
+    visibility: visible;
+}
+
+.volume-slider {
+    width: 100px;
+    height: 5px;
+    background: #333;
+    border-radius: 5px;
+    outline: none;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.volume-text {
+    color: white;
+    font-size: 12px;
+    min-width: 30px;
+}
+
+/* Bottom Action Panel */
+.action-panel {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 140px;
+    background: linear-gradient(135deg, rgba(0, 20, 30, 0.98), rgba(0, 40, 60, 0.98));
+    display: none;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-radius: 8px;
+    border: 4px solid rgba(20, 118, 97, 0.689);      
+    z-index: 999;
+    will-change: auto;
+}
+
+.action-panel.show {
+    display: flex;
+}
+
+.action-items {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-left: 20px;
+}
+
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.action-item {
+    color: white;
+    font-size: 12px;
+    font-weight: normal;
+    margin: 0;
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    transition: none;
+    background-color: rgba(0, 0, 0, 0.3);
+    user-select: none;
+}
+
+.action-item:hover:not(.disabled) {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+
+
+.action-item.selected {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.action-item.disabled {
+    cursor: not-allowed;
+}
+
+/* Skills Panel */
+.skills-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 55%;
+    height: 60%;
+    border: 2px solid rgba(20, 118, 97, 0.689); 
+    border-radius: 6px;
+    display: none;
+    flex-direction: row;
+    z-index: 1002;
+    padding: 15px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.skill-tooltip {
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(0, 20, 40, 0.98), rgba(20, 40, 60, 0.98));
+    color: white;
+    padding: 12px 15px;
+    font-size: 13px;
+    white-space: pre-line;
+    z-index: 1003;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    max-width: 280px;
+    min-width: 200px;
+    text-align: left;
+    line-height: 1.4;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.skills-panel.visible {
+    display: flex;
+}
+
+.skills-board {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.skill-item {
+    padding: 14px 16px;
+    margin: 4px;
+    color: white;
+    cursor: pointer;
+    text-align: center;
+    font-size: 15px;
+    flex: 1;
+    position: relative;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+}
+
+.skill-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.skill-item:hover .skill-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+
+/* Combat Status Display */
+.combat-status {
+    position: fixed;
+    bottom: 160px;
+    margin-left: 10px;
+    width: 250px;
+    padding: 12px 16px;
+    z-index: 1000;
+    margin-bottom: 30px;
+}
+
+.turn-info {
+    color: #ffd700;
+    font-size: 16px;
+    font-weight: bold;
+    display: block;
+}
+
+.action-status {
+color: white;
+font-size: 13px;
+line-height: 1.3;
+}
+
+.mp-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    border: 1px solid rgba(74, 171, 247, 0.5);
+}
+
+.mp-label {
+    font-size: 12px;
+    color: #4dabf7;
+    font-weight: bold;
+}
+
+.mp-value {
+    font-size: 14px;
+    color: #4dabf7;
+    font-weight: bold;
+    min-width: 50px;
+}
+
+.defense-counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-top: 5px;
+}
+
+.counter-label {
+    font-size: 12px;
+    color: #ccc;
+}
+
+.counter-value {
+    font-size: 16px;
+    color: #fff;
+    font-weight: bold;
+}
+
+/* Game Over Modal */
+.game-over-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.game-over-content {
+    background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+}
+
+.game-over-content h2 {
+    color: white;
+    margin-bottom: 20px;
+    font-size: 28px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.game-over-content p {
+    color: white;
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+.return-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+
