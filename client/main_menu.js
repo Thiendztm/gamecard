@@ -39,6 +39,11 @@ function initializeSocket() {
     socket.on('roomCreated', (roomData) => {
         gameRooms.push(roomData);
         updateRoomList();
+        
+        // Join the created room immediately
+        currentRoom = roomData;
+        closeRoomPanel();
+        openWaitingRoom(roomData);
     });
     
     socket.on('roomJoined', (roomData) => {
@@ -129,57 +134,42 @@ let currentPlayer = null;
 let selectedCharacter = null;
 
 function initializeCharacterSelection() {
+    // Skip initialization if Card mode is active
+    if (window.cardModeActive) {
+        console.log('Card mode active, skipping character selection initialization');
+        return;
+    }
+    
     const characterModal = document.getElementById('character-modal');
     const characterButtons = document.querySelectorAll('.character-select-btn');
     const characterOptions = document.querySelectorAll('.character-btn');
     const confirmBtn = document.getElementById('confirm-character');
     const cancelBtn = document.getElementById('cancel-character');
     
-    // Clear old character data
-    sessionStorage.removeItem('player1Character');
-    sessionStorage.removeItem('player2Character');
-    sessionStorage.removeItem('player1Name');
-    sessionStorage.removeItem('player2Name');
-    sessionStorage.removeItem('currentPlayerPosition');
-    
     // Open modal when character select button is clicked
     characterButtons.forEach(btn => {
         btn.addEventListener('click', () => {
+            // Double-check if Card mode became active after initialization
+            if (window.cardModeActive) {
+                console.log('Card mode active, ignoring character selection click');
+                return;
+            }
+            
             const user = JSON.parse(sessionStorage.getItem('user') || '{}');
             const playerNumber = btn.dataset.player;
             
-            console.log('Character button clicked:', playerNumber, 'by user:', user.username);
-            
-            // Check if both players are in room
+            // Check if current room exists and has players
+            const currentRoom = JSON.parse(sessionStorage.getItem('currentRoom') || '{}');
             if (!currentRoom || !currentRoom.players || currentRoom.players.length < 2) {
                 showMessage('Cần có đủ 2 người chơi mới có thể chọn nhân vật!', true);
                 return;
             }
             
-            // Only allow current user to select their own character
-            const gameData = JSON.parse(sessionStorage.getItem('gameData') || '{}');
-            const players = currentRoom.players || [];
-            
-            // Find current user's position in the game
-            let userPlayerPosition = null;
-            for (let i = 0; i < players.length; i++) {
-                if (players[i].name === user.username) {
-                    userPlayerPosition = (i + 1).toString();
-                    break;
-                }
-            }
-            
-            if (userPlayerPosition === playerNumber) {
+            // Check if this is the user's slot
+            const playerIndex = parseInt(playerNumber) - 1;
+            if (currentRoom.players[playerIndex] && currentRoom.players[playerIndex].name === user.username) {
                 currentPlayer = playerNumber;
-                characterModal.style.display = 'flex';
-                
-                // Clear previous selection
-                characterOptions.forEach(option => {
-                    option.classList.remove('selected');
-                });
-                selectedCharacter = null;
-                
-                console.log('Character modal opened for player:', playerNumber);
+                showCharacterModal();
             } else {
                 showMessage('Bạn chỉ có thể chọn nhân vật cho chính mình!', true);
             }
@@ -297,6 +287,150 @@ function updateCharacterDisplays() {
     }
 }
 
+// Function to disable character selection for Card mode with AI
+function disableCharacterSelection() {
+    console.log('=== DISABLING CHARACTER SELECTION FOR CARD MODE ===');
+    
+    // Force set the flag
+    window.cardModeActive = true;
+    
+    // Wait a bit more for DOM to be fully ready
+    setTimeout(() => {
+        // Use more aggressive selectors to find all character buttons
+        const allCharacterButtons = document.querySelectorAll('button[class*="character-select"], button[id*="char-btn"], .character-select-btn, button[data-player]');
+        console.log('Found buttons to disable:', allCharacterButtons.length);
+        
+        if (allCharacterButtons.length === 0) {
+            console.log('No buttons found, trying alternative selectors...');
+            const alternativeButtons = document.querySelectorAll('button');
+            console.log('All buttons found:', alternativeButtons.length);
+            alternativeButtons.forEach((btn, i) => {
+                if (btn.textContent.includes('Chọn nhân vật')) {
+                    console.log(`Found character button ${i}:`, btn);
+                    allCharacterButtons.push(btn);
+                }
+            });
+        }
+        
+        // Disable all character selection buttons
+        allCharacterButtons.forEach((btn, index) => {
+            console.log(`Disabling button ${index + 1}:`, btn.id, btn.className, btn.textContent);
+            
+            // Clone and replace to remove all event listeners
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            // Apply disable styles
+            newBtn.disabled = true;
+            newBtn.textContent = 'Không khả dụng';
+            newBtn.style.cssText = `
+                opacity: 0.3 !important;
+                cursor: not-allowed !important;
+                background-color: #444 !important;
+                pointer-events: none !important;
+                color: #888 !important;
+                border-color: #444 !important;
+            `;
+            
+            // Remove all event attributes
+            newBtn.onclick = null;
+            newBtn.onmousedown = null;
+            newBtn.onmouseup = null;
+            newBtn.addEventListener = () => {};
+        });
+        
+        // Hide all character selection sections
+        const characterSelections = document.querySelectorAll('.player-character-selection');
+        console.log('Found character selection sections:', characterSelections.length);
+        characterSelections.forEach(selection => {
+            selection.style.display = 'none';
+        });
+        
+        // Disable character modal
+        const characterModal = document.getElementById('character-modal');
+        if (characterModal) {
+            characterModal.style.display = 'none';
+            characterModal.onclick = null;
+        }
+        
+        // Add visual indicator
+        const waitingRoomContent = document.querySelector('.waiting-room-content');
+        if (waitingRoomContent) {
+            let cardModeIndicator = document.getElementById('card-mode-indicator');
+            if (!cardModeIndicator) {
+                cardModeIndicator = document.createElement('div');
+                cardModeIndicator.id = 'card-mode-indicator';
+                cardModeIndicator.style.cssText = `
+                    background: #ff6b35;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 6px;
+                    text-align: center;
+                    margin: 15px 0;
+                    font-weight: bold;
+                    font-size: 16px;
+                    border: 2px solid #ff8c42;
+                    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+                `;
+                cardModeIndicator.innerHTML = '🎴 <strong>Chế độ Card</strong> - Không cần chọn nhân vật';
+                
+                // Insert at the very top
+                const firstChild = waitingRoomContent.firstChild;
+                if (firstChild) {
+                    waitingRoomContent.insertBefore(cardModeIndicator, firstChild);
+                } else {
+                    waitingRoomContent.appendChild(cardModeIndicator);
+                }
+                console.log('Card mode indicator added');
+            }
+        }
+        
+        console.log('=== CHARACTER SELECTION DISABLED ===');
+    }, 100);
+}
+
+// Function to show messages to user
+function showMessage(message, isError = false) {
+    // Create or get existing message element
+    let messageElement = document.getElementById('game-message');
+    if (!messageElement) {
+        messageElement = document.createElement('div');
+        messageElement.id = 'game-message';
+        messageElement.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            z-index: 10000;
+            max-width: 400px;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(messageElement);
+    }
+    
+    // Set message style based on type
+    messageElement.style.backgroundColor = isError ? '#ff4444' : '#44aa44';
+    messageElement.textContent = message;
+    messageElement.style.opacity = '1';
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        if (messageElement) {
+            messageElement.style.opacity = '0';
+            setTimeout(() => {
+                if (messageElement && messageElement.parentNode) {
+                    messageElement.parentNode.removeChild(messageElement);
+                }
+            }, 300);
+        }
+    }, 3000);
+}
+
 function showCharacterModal() {
     const modal = document.getElementById('character-modal');
     if (modal) {
@@ -374,7 +508,7 @@ window.onload = function() {
     sessionStorage.removeItem('gameCharacter');
     sessionStorage.removeItem('characterSelections');
     
-    // Initialize character selection
+    // Initialize character selection (will be skipped if cardModeActive is true)
     initializeCharacterSelection();
     
     // Emit userLogin event to register the user as online
@@ -452,6 +586,7 @@ function updateRoomList() {
     thead.innerHTML = `
         <tr>
             <th>Ghi chú</th>
+            <th>Mode</th>
             <th>Chủ phòng</th>
             <th>Loại trận</th>
             <th>Trạng thái</th>
@@ -474,6 +609,7 @@ function updateRoomList() {
         
         row.innerHTML = `
             <td>${room.note}</td>
+            <td>${room.mode || 'Card'}</td>
             <td>${room.host}</td>
             <td>${room.type}</td>
             <td>${statusText}</td>
@@ -539,6 +675,7 @@ function createRoom() {
     debug('Creating room...');
     
     const type = document.querySelector('.type-select').value;
+    const mode = document.querySelector('.mode-select').value;
     const duelNote = document.querySelector('.duel-note-input').value.trim();
     const duelPassword = document.querySelector('.duel-password-input').value.trim();
     
@@ -561,6 +698,8 @@ function createRoom() {
     const roomData = {
         id: roomId,
         type: type === 'single' ? 'Đánh với máy' : 'Đánh với người',
+        gameMode: type === 'single' ? 'single' : 'match',
+        mode: mode || 'Card',
         host: user.username || 'Unknown',
         note: duelNote || 'Không có ghi chú',
         password: duelPassword,
@@ -611,6 +750,9 @@ function createRoom() {
 
 // Waiting Room functions
 function openWaitingRoom(roomData) {
+    console.log('=== OPENING WAITING ROOM ===');
+    console.log('Room data received:', roomData);
+    
     currentRoom = roomData;
     
     const waitingPanel = document.getElementById('waiting-room-panel');
@@ -622,7 +764,37 @@ function openWaitingRoom(roomData) {
         document.getElementById('room-host-display').textContent = roomData.host;
         document.getElementById('room-type-display').textContent = roomData.type;
         
+        // Debug all room properties
+        console.log('Room properties check:');
+        console.log('- gameMode:', roomData.gameMode);
+        console.log('- mode:', roomData.mode);
+        console.log('- type:', roomData.type);
+        
+        // Check if this is Card mode with AI - set flag BEFORE updating UI
+        const isCardMode = roomData.gameMode === 'single' && roomData.mode === 'Card';
+        const isAIMode = roomData.type === 'Đánh với máy';
+        
+        console.log('Card mode check:', isCardMode);
+        console.log('AI mode check:', isAIMode);
+        
+        if (isCardMode || isAIMode) {
+            window.cardModeActive = true;
+            console.log('=== CARD MODE WITH AI DETECTED ===');
+            console.log('Setting cardModeActive = true');
+        }
+        
         updateWaitingRoom();
+        
+        // Disable character selection AFTER updating UI for Card mode
+        if (isCardMode || isAIMode) {
+            console.log('Scheduling character selection disable...');
+            setTimeout(() => {
+                console.log('Executing disableCharacterSelection now...');
+                disableCharacterSelection();
+            }, 500);
+        }
+    } else {
+        console.log('Waiting panel not found!');
     }
 }
 
@@ -633,14 +805,40 @@ function closeWaitingRoom() {
         
         // Leave room via socket
         if (socket && currentRoom) {
-            const user = JSON.parse(sessionStorage.getItem('user') || '{}');
             socket.emit('leaveRoom', {
                 roomId: currentRoom.id,
-                playerId: user.username
+                playerId: JSON.parse(sessionStorage.getItem('user') || '{}').username
             });
         }
         
+        // Clear room data
         currentRoom = null;
+        sessionStorage.removeItem('currentRoom');
+        sessionStorage.removeItem('currentRoomId');
+        
+        // Reset Card mode flag and cleanup
+        window.cardModeActive = false;
+        
+        // Remove card mode indicator if it exists
+        const cardModeIndicator = document.getElementById('card-mode-indicator');
+        if (cardModeIndicator) {
+            cardModeIndicator.remove();
+        }
+        
+        // Re-enable character selection for other modes
+        const allCharacterButtons = document.querySelectorAll('button[id*="char-btn"], .character-select-btn');
+        allCharacterButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.textContent = 'Chọn nhân vật';
+            btn.style.cssText = '';
+            btn.onclick = null;
+        });
+        
+        // Show character selection sections again
+        const characterSelections = document.querySelectorAll('.player-character-selection');
+        characterSelections.forEach(selection => {
+            selection.style.display = '';
+        });
     }
 }
 
@@ -736,8 +934,10 @@ function updateWaitingRoom() {
         }
     }
     
-    // Update character displays
-    updateCharacterDisplays();
+    // Update character displays (skip for Card mode with AI)
+    if (!(currentRoom.gameMode === 'single' && currentRoom.mode === 'Card')) {
+        updateCharacterDisplays();
+    }
     
     // Update ready button
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
@@ -745,17 +945,35 @@ function updateWaitingRoom() {
     const readyBtn = document.getElementById('ready-btn');
     
     if (readyBtn && currentPlayer) {
-        readyBtn.textContent = currentPlayer.ready ? 'Hủy sẵn sàng' : 'Sẵn sàng';
-        readyBtn.className = currentPlayer.ready ? 'ready-btn not-ready' : 'ready-btn';
+        // For Card mode with AI, change button text and behavior
+        if (currentRoom.gameMode === 'single' && currentRoom.mode === 'Card') {
+            readyBtn.textContent = 'Bắt đầu chơi';
+            readyBtn.className = 'ready-btn';
+            
+            // Re-disable character selection after UI update
+            setTimeout(() => {
+                disableCharacterSelection();
+            }, 50);
+        } else {
+            readyBtn.textContent = currentPlayer.ready ? 'Hủy sẵn sàng' : 'Sẵn sàng';
+            readyBtn.className = currentPlayer.ready ? 'ready-btn not-ready' : 'ready-btn';
+        }
     }
     
-    // Check if both players are ready
-    if (players.length === 2 && players.every(p => p.ready)) {
-        setTimeout(() => {
-            if (socket && currentRoom) {
-                socket.emit('startGame', { roomId: currentRoom.id });
+    // Check if both players are ready (skip for Card mode with AI)
+    if (!(currentRoom.gameMode === 'single' && currentRoom.mode === 'Card')) {
+        if (players.length === 2 && players.every(p => p.ready)) {
+            // Ensure this is not Card mode before auto-starting
+            if (currentRoom.gameMode !== 'single' || currentRoom.mode !== 'Card') {
+                setTimeout(() => {
+                    if (socket && currentRoom) {
+                        socket.emit('startGame', {
+                            roomId: currentRoom.id
+                        });
+                    }
+                }, 1000);
             }
-        }, 1000);
+        }
     }
 }
 
@@ -776,7 +994,30 @@ function toggleReady() {
     const currentPlayer = currentRoom.players.find(p => p.id === user.username);
     
     if (currentPlayer) {
-        // Check if user has selected a character before allowing ready
+        // For Card mode with AI, skip character selection requirement
+        const isCardMode = currentRoom.gameMode === 'single' && currentRoom.mode === 'Card';
+        const isAIMode = currentRoom.type === 'Đánh với máy';
+        
+        if (isCardMode || isAIMode || window.cardModeActive) {
+            console.log('Card mode detected in toggleReady, redirecting to gameplay...');
+            
+            // Always redirect to gamePlay.html when button is clicked in Card mode
+            const gameData = {
+                roomId: currentRoom.id,
+                gameMode: 'card',
+                isAI: true,
+                players: currentRoom.players
+            };
+            sessionStorage.setItem('gameData', JSON.stringify(gameData));
+            sessionStorage.setItem('currentRoomId', currentRoom.id);
+            sessionStorage.setItem('currentPlayerId', user.username);
+            
+            // Force redirect to gamePlay.html
+            window.location.href = 'gamePlay.html';
+            return;
+        }
+        
+        // For other modes, check if user has selected a character before allowing ready
         const characterSelections = JSON.parse(sessionStorage.getItem('characterSelections') || '{}');
         const userCharacter = characterSelections[user.username];
         
@@ -821,6 +1062,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (deckBtn) {
         deckBtn.onclick = function() {
+            // Play select sound effect
+            if (window.sfxManager) {
+                window.sfxManager.playSelect();
+            }
+            // Open deck builder modal
+            openDeckBuilder();
         };
     }
     
@@ -838,6 +1085,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (settingsBtn) {
         settingsBtn.onclick = function() {
+            if (window.__openSettingsOverlay) {
+                window.__openSettingsOverlay();
+            }
         };
     }
     
@@ -914,6 +1164,18 @@ document.addEventListener('DOMContentLoaded', function() {
             openRoomPanel();
         };
     }
+    
+    // Deck Builder Modal Event Listeners
+    const closeDeckBuilderBtn = document.querySelector('.close-deck-builder');
+    const deckBuilderOverlay = document.querySelector('.deck-builder-overlay');
+    
+    if (closeDeckBuilderBtn) {
+        closeDeckBuilderBtn.onclick = function() {
+            closeDeckBuilder();
+        };
+    }
+    
+    // Remove click outside to close for fullscreen modal
     
     document.addEventListener('click', function(e) {
         if (e.target.closest('.room-row')) {
@@ -1425,3 +1687,184 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     });
 });
+
+// ===== DECK BUILDER FUNCTIONALITY =====
+const deckBuilderRules = { HP_START:100, TURN_LIMIT:10, TURN_SECONDS:20, HAND_SIZE:5, DECK_MAX:15, TYPE_LIMIT:6 };
+let deckList = [];
+
+function openDeckBuilder() {
+    const modal = document.getElementById('deck-builder-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        initializeDeckBuilder();
+    }
+}
+
+function closeDeckBuilder() {
+    // Play cancel sound effect
+    if (window.sfxManager) {
+        window.sfxManager.playCancel();
+    }
+    
+    const modal = document.getElementById('deck-builder-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function initializeDeckBuilder() {
+    const $ = id => document.getElementById(id);
+    
+    // Initialize deck builder elements
+    const submitBtn = $("submit-deck");
+    const countTypes = arr => arr.reduce((a,t) => (a[t]++,a), {attack:0,defend:0,heal:0,curse:0});
+    
+    function refreshDeckUI() {
+        const c = countTypes(deckList);
+        $("cnt-attack").textContent = c.attack;
+        $("cnt-defend").textContent = c.defend;
+        $("cnt-heal").textContent = c.heal;
+        $("cnt-curse").textContent = c.curse;
+        $("deck-list").textContent = deckList.join(", ");
+        
+        // Render deck cards
+        const deckDrop = $("deck-drop");
+        deckDrop.innerHTML = "";
+        deckList.forEach((type, idx) => {
+            const card = document.createElement("div");
+            card.className = "cardbtn";
+            card.setAttribute("data-type", type);
+            card.setAttribute("draggable", "true");
+            card.title = type.charAt(0).toUpperCase() + type.slice(1);
+            card.ondragstart = e => {
+                e.dataTransfer.setData("text/plain", idx);
+                e.dataTransfer.effectAllowed = "move";
+            };
+            card.ondragend = e => {
+                if (e.dataTransfer.dropEffect === "none") {
+                    deckList.splice(idx, 1);
+                    refreshDeckUI();
+                }
+            };
+            deckDrop.appendChild(card);
+        });
+        
+        // Update submit button
+        const remain = deckBuilderRules.DECK_MAX - deckList.length;
+        submitBtn.disabled = remain !== 0;
+        submitBtn.textContent = remain === 0
+            ? "Xác nhận Deck (15/15)"
+            : `Thêm ${remain} lá nữa (${deckList.length}/15)`;
+        updateDeckListSelect();
+    }
+    
+    // Drag & drop functionality
+    const deckDrop = $("deck-drop");
+    deckDrop.ondragover = e => { e.preventDefault(); deckDrop.style.background = "#232b3e33"; };
+    deckDrop.ondragleave = e => { deckDrop.style.background = ""; };
+    deckDrop.ondrop = e => {
+        e.preventDefault();
+        deckDrop.style.background = "";
+        const type = e.dataTransfer.getData("card-type");
+        if (type) {
+            const c = countTypes(deckList);
+            if (deckList.length >= deckBuilderRules.DECK_MAX) return alert("Đạt tối đa 15 lá.");
+            if (c[type] >= deckBuilderRules.TYPE_LIMIT) return alert("Mỗi loại tối đa 6 lá.");
+            deckList.push(type);
+            refreshDeckUI();
+        }
+    };
+    
+    // Card samples drag functionality
+    document.querySelectorAll("#card-samples .cardbtn").forEach(btn => {
+        btn.ondragstart = e => {
+            e.dataTransfer.setData("card-type", btn.getAttribute("data-type"));
+            e.dataTransfer.effectAllowed = "copy";
+        };
+    });
+    
+    // Deck storage functions
+    function getSavedDecks() {
+        return JSON.parse(localStorage.getItem('savedDecks') || '{}');
+    }
+    
+    function saveDeck(name, list) {
+        if (!name) return alert('Vui lòng nhập tên deck!');
+        const decks = getSavedDecks();
+        decks[name] = list.slice();
+        localStorage.setItem('savedDecks', JSON.stringify(decks));
+        updateDeckListSelect();
+        alert('Đã lưu deck!');
+    }
+    
+    function deleteDeck(name) {
+        const decks = getSavedDecks();
+        if (decks[name]) { 
+            delete decks[name]; 
+            localStorage.setItem('savedDecks', JSON.stringify(decks)); 
+        }
+        updateDeckListSelect();
+    }
+    
+    function updateDeckListSelect() {
+        const decks = getSavedDecks();
+        const sel = $("deck-list-select");
+        const cur = sel.value;
+        sel.innerHTML = '';
+        Object.keys(decks).forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name; 
+            opt.textContent = name;
+            sel.appendChild(opt);
+        });
+        if (cur && decks[cur]) sel.value = cur;
+    }
+    
+    // Button event listeners
+    $("save-deck").onclick = () => {
+        const name = $("deck-name").value.trim();
+        if (!name) return alert('Vui lòng nhập tên deck!');
+        if (deckList.length !== deckBuilderRules.DECK_MAX) return alert('Deck phải đủ 15 lá!');
+        saveDeck(name, deckList);
+    };
+    
+    $("load-deck").onclick = () => {
+        const sel = $("deck-list-select");
+        const decks = getSavedDecks();
+        const name = sel.value;
+        if (decks[name]) {
+            deckList = decks[name].slice();
+            $("deck-name").value = name;
+            refreshDeckUI();
+        }
+    };
+    
+    $("delete-deck").onclick = () => {
+        const sel = $("deck-list-select");
+        const name = sel.value;
+        if (name && confirm('Xóa deck này?')) deleteDeck(name);
+    };
+    
+    $("new-deck").onclick = () => {
+        deckList = [];
+        $("deck-name").value = '';
+        refreshDeckUI();
+    };
+    
+    $("deck-list-select").onchange = () => {
+        const sel = $("deck-list-select");
+        $("deck-name").value = sel.value;
+    };
+    
+    // Initialize UI
+    setTimeout(() => {
+        updateDeckListSelect();
+        const sel = $("deck-list-select");
+        if (sel.options.length > 0) {
+            sel.selectedIndex = 0;
+            $("load-deck").onclick();
+        }
+    }, 200);
+    
+    refreshDeckUI();
+}

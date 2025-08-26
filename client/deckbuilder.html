@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Deck Builder - Touhou FM: Card Battle</title>
+    <link rel="stylesheet" href="css/gameplay.css">
+    <style>
+      body {
+        background: url('./assets/background/bg7.jpg') center/cover no-repeat fixed,
+                    linear-gradient(45deg, rgba(11,15,22,0.8), rgba(26,36,64,0.9)),
+                    var(--bg) !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h2>Deck Builder</h2>
+      <div class="row" style="gap:16px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <input id="deck-name" type="text" placeholder="Tên deck..." style="width:180px;" maxlength="20">
+        <button id="save-deck" class="btn">Lưu deck</button>
+        <button id="new-deck" class="btn btn-secondary">Deck mới</button>
+      </div>
+      <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="muted small">Deck đã lưu:</span>
+        <select id="deck-list-select" style="min-width:180px;"></select>
+        <button id="load-deck" class="btn btn-secondary">Nạp</button>
+        <button id="delete-deck" class="btn btn-secondary">Xóa</button>
+      </div>
+      <div class="row small" style="flex-wrap:wrap;gap:10px">
+        <div class="tag">Attack: <span id="cnt-attack">0</span></div>
+        <div class="tag">Defend: <span id="cnt-defend">0</span></div>
+        <div class="tag">Heal: <span id="cnt-heal">0</span></div>
+        <div class="tag">Curse: <span id="cnt-curse">0</span></div>
+        <button id="submit-deck" class="btn">Xác nhận Deck</button>
+      </div>
+      <div class="row" style="gap:30px;align-items:flex-start;flex-wrap:wrap;justify-content:center;margin-top:16px;">
+        <div style="min-width:480px;">
+          <div class="muted small" style="margin-bottom:6px;">Kéo thả lá bài vào deck của bạn:</div>
+          <div id="card-samples" class="hand" style="min-height:150px;">
+            <div class="cardbtn" draggable="true" data-type="attack" title="Attack"></div>
+            <div class="cardbtn" draggable="true" data-type="defend" title="Defend"></div>
+            <div class="cardbtn" draggable="true" data-type="heal" title="Heal"></div>
+            <div class="cardbtn" draggable="true" data-type="curse" title="Curse"></div>
+          </div>
+        </div>
+        <div style="min-width:480px;">
+          <div class="muted small" style="margin-bottom:6px;">Deck của bạn (kéo ra ngoài để xóa):</div>
+          <div id="deck-drop" class="hand" style="min-height:150px;border:2px dashed #334155;background:rgba(52,60,90,0.12);"></div>
+        </div>
+      </div>
+      <div class="muted small">Danh sách lá: <span id="deck-list"></span></div>
+      <div class="muted" id="deck-error" style="color:#ff8b8b;"></div>
+      <div style="margin-top:24px"><a href="main_menu.html" class="btn btn-secondary">Quay lại menu</a></div>
+    </div>
+    <script>
+      const rules = { HP_START:100, TURN_LIMIT:10, TURN_SECONDS:20, HAND_SIZE:5, DECK_MAX:15, TYPE_LIMIT:6 };
+      const $ = id=>document.getElementById(id);
+      let deckList=[];
+      const submitBtn = $("submit-deck");
+      const countTypes=arr=>arr.reduce((a,t)=>(a[t]++,a),{attack:0,defend:0,heal:0,curse:0});
+      function refreshDeckUI(){
+        const c = countTypes(deckList);
+        $("cnt-attack").textContent = c.attack;
+        $("cnt-defend").textContent = c.defend;
+        $("cnt-heal").textContent   = c.heal;
+        $("cnt-curse").textContent  = c.curse;
+        $("deck-list").textContent  = deckList.join(", ");
+        // Render deck cards
+        const deckDrop = $("deck-drop");
+        deckDrop.innerHTML = "";
+        deckList.forEach((type, idx) => {
+          const card = document.createElement("div");
+          card.className = "cardbtn";
+          card.setAttribute("data-type", type);
+          card.setAttribute("draggable", "true");
+          card.title = type.charAt(0).toUpperCase() + type.slice(1);
+          card.ondragstart = e => {
+            e.dataTransfer.setData("text/plain", idx);
+            e.dataTransfer.effectAllowed = "move";
+          };
+          card.ondragend = e => {
+            if (e.dataTransfer.dropEffect === "none") {
+              deckList.splice(idx, 1);
+              refreshDeckUI();
+            }
+          };
+          deckDrop.appendChild(card);
+        });
+        // Hiển thị tiến độ & bật/tắt nút
+        const remain = rules.DECK_MAX - deckList.length;
+        submitBtn.disabled = remain !== 0;
+        submitBtn.textContent = remain === 0
+          ? "Xác nhận Deck (15/15)"
+          : `Thêm ${remain} lá nữa (${deckList.length}/15)`;
+        updateDeckListSelect();
+      }
+      // Drag & drop
+      const deckDrop = $("deck-drop");
+      deckDrop.ondragover = e => { e.preventDefault(); deckDrop.style.background = "#232b3e33"; };
+      deckDrop.ondragleave = e => { deckDrop.style.background = ""; };
+      deckDrop.ondrop = e => {
+        e.preventDefault();
+        deckDrop.style.background = "";
+        const type = e.dataTransfer.getData("card-type");
+        if (type) {
+          const c = countTypes(deckList);
+          if (deckList.length >= rules.DECK_MAX) return alert("Đạt tối đa 15 lá.");
+          if (c[type] >= rules.TYPE_LIMIT) return alert("Mỗi loại tối đa 6 lá.");
+          deckList.push(type);
+          refreshDeckUI();
+        }
+      };
+      deckDrop.ondragend = e => { deckDrop.style.background = ""; };
+      document.querySelectorAll("#card-samples .cardbtn").forEach(btn => {
+        btn.ondragstart = e => {
+          e.dataTransfer.setData("card-type", btn.getAttribute("data-type"));
+          e.dataTransfer.effectAllowed = "copy";
+        };
+      });
+      // Deck storage (localStorage)
+      function getSavedDecks() {
+        return JSON.parse(localStorage.getItem('savedDecks')||'{}');
+      }
+      function saveDeck(name, list) {
+        if (!name) return alert('Vui lòng nhập tên deck!');
+        const decks = getSavedDecks();
+        decks[name] = list.slice();
+        localStorage.setItem('savedDecks', JSON.stringify(decks));
+        updateDeckListSelect();
+        alert('Đã lưu deck!');
+      }
+      function deleteDeck(name) {
+        const decks = getSavedDecks();
+        if (decks[name]) { delete decks[name]; localStorage.setItem('savedDecks', JSON.stringify(decks)); }
+        updateDeckListSelect();
+      }
+      function updateDeckListSelect() {
+        const decks = getSavedDecks();
+        const sel = $("deck-list-select");
+        const cur = sel.value;
+        sel.innerHTML = '';
+        Object.keys(decks).forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name; opt.textContent = name;
+          sel.appendChild(opt);
+        });
+        if (cur && decks[cur]) sel.value = cur;
+      }
+      $("save-deck").onclick = () => {
+        const name = $("deck-name").value.trim();
+        if (!name) return alert('Vui lòng nhập tên deck!');
+        if (deckList.length !== rules.DECK_MAX) return alert('Deck phải đủ 15 lá!');
+        saveDeck(name, deckList);
+      };
+      $("load-deck").onclick = () => {
+        const sel = $("deck-list-select");
+        const decks = getSavedDecks();
+        const name = sel.value;
+        if (decks[name]) {
+          deckList = decks[name].slice();
+          $("deck-name").value = name;
+          refreshDeckUI();
+        }
+      };
+      $("delete-deck").onclick = () => {
+        const sel = $("deck-list-select");
+        const name = sel.value;
+        if (name && confirm('Xóa deck này?')) deleteDeck(name);
+      };
+      $("new-deck").onclick = () => {
+        deckList = [];
+        $("deck-name").value = '';
+        refreshDeckUI();
+      };
+      $("deck-list-select").onchange = () => {
+        const sel = $("deck-list-select");
+        $("deck-name").value = sel.value;
+      };
+      setTimeout(()=>{
+        updateDeckListSelect();
+        const sel = $("deck-list-select");
+        if (sel.options.length>0) {
+          sel.selectedIndex = 0;
+          $("load-deck").onclick();
+        }
+      }, 200);
+      refreshDeckUI();
+    </script>
+  </body>
+</html>

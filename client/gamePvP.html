@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Touhou FM: Battle Card - Đấu với Người</title>
+    <link rel="stylesheet" href="gameplay.css">
+    <style>
+    /* Game Result Overlay */
+    .game-result-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    .result-container {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      border: 2px solid #475569;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      max-width: 500px;
+      width: 90%;
+      animation: slideUp 0.6s ease-out;
+    }
+    
+    .result-title {
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .result-title.win { color: #10b981; }
+    .result-title.lose { color: #ef4444; }
+    .result-title.draw { color: #f59e0b; }
+    
+    .result-details {
+      font-size: 18px;
+      color: #94a3b8;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    
+    .result-stats {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #e2e8f0;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-top: 5px;
+    }
+    
+    .result-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    
+    .result-btn {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .result-btn.primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .result-btn.secondary {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .result-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from { 
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    .waiting-indicator {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #94a3b8;
+      border-top: 2px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    </style>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/scripts/sound.js"></script>
+  <script src="/scripts/bgm.js"></script>
+  </head>
+  <body>
+    <!-- Game Result Overlay -->
+    <div id="game-result-overlay" class="game-result-overlay">
+      <div class="result-container">
+        <div id="result-title" class="result-title">CHIẾN THẮNG!</div>
+        <div id="result-details" class="result-details">
+          Kết thúc lượt 10. Bạn đã chiến thắng!
+        </div>
+        <div class="result-stats">
+          <div class="stat-item">
+            <div id="your-final-hp" class="stat-value">100</div>
+            <div class="stat-label">HP của bạn</div>
+          </div>
+          <div class="stat-item">
+            <div id="op-final-hp" class="stat-value">50</div>
+            <div class="stat-label">HP đối thủ</div>
+          </div>
+          <div class="stat-item">
+            <div id="final-turn" class="stat-value">10</div>
+            <div class="stat-label">Số lượt</div>
+          </div>
+        </div>
+        <div class="result-buttons">
+          <button id="play-again-btn" class="result-btn primary">Tìm trận mới</button>
+          <button id="back-to-menu-btn" class="result-btn secondary">Về Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <button class="tab-btn active" data-tab="chat">Chat</button>
+        <button class="tab-btn" data-tab="events">Event Log</button>
+      </div>
+      <div class="sidebar-content">
+        <div id="chat-tab" class="tab-content active">
+          <div id="chat-messages" class="messages-container"></div>
+          <div class="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Nhập tin nhắn với đối thủ..." maxlength="200">
+            <button id="send-chat" class="send-btn">Gửi</button>
+          </div>
+        </div>
+        <div id="events-tab" class="tab-content">
+          <div id="event-messages" class="messages-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="wrap">
+        <h2>Touhou FM: Battle Card - Chế độ PvP</h2>
+
+      <!-- LOBBY -->
+      <div id="screen-lobby" class="card">
+        <div class="lobby-header">
+          <h3>Chuẩn bị trận đấu với Người chơi</h3>
+          <div class="match-info">
+            <div class="player-info">
+              <img id="player-avatar" class="lobby-avatar" src="./assets/reimu2.png" alt="Player"/>
+              <div class="player-details">
+                <div class="player-name" id="player-name">Đang tải...</div>
+                <div class="player-character">
+                  <select id="character" class="character-select">
+                    <option value="Reimu">Reimu (Heal +20 on special)</option>
+                    <option value="Marisa">Marisa (Attack +25 on special)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="vs-text">VS</div>
+            <div class="bot-info">
+              <img id="bot-avatar" class="lobby-avatar" src="./assets/cirno.png" alt="Opponent"/>
+              <div class="bot-details">
+                <div class="bot-name" id="bot-name">Đối thủ</div>
+                <div class="bot-difficulty" id="bot-difficulty">Đang chờ người chơi...</div>
+                <div class="op-status" id="op-status" style="margin-top:4px;font-size:13px;color:#94a3b8;">Chưa kết nối</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="action-buttons">
+          <div style="display:flex;flex-direction:column;gap:12px;align-items:center;">
+            <div style="display:flex;gap:16px;align-items:center;">
+              <span class="muted">Chọn deck:</span>
+              <select id="deck-selector" style="min-width:200px;padding:8px;">
+                <option value="">-- Chọn deck để chơi --</option>
+              </select>
+              <button id="refresh-decks" class="btn btn-secondary">⟳</button>
+            </div>
+            <button id="start-match" class="btn btn-success" disabled>Tìm đối thủ</button>
+            <div id="waiting-status" style="display:none;color:#94a3b8;font-size:14px;">
+              Đang tìm đối thủ<span class="waiting-indicator"></span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="muted" id="lobby-msg" style="margin-top:8px;"></div>
+        <div class="row" style="margin-top:16px;">
+          <button id="back-to-menu" class="btn btn-secondary">Quay lại Menu</button>
+        </div>
+      </div>
+
+      <!-- DECK BUILDER -->
+      <div id="screen-deck" class="card" style="display:none;">
+        <h3>Deck Builder (tối đa 15 lá, mỗi loại tối đa 6)</h3>
+        <div class="row" style="gap:16px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          <input id="deck-name" type="text" placeholder="Tên deck..." style="width:180px;" maxlength="20">
+          <button id="save-deck" class="btn">Lưu deck</button>
+          <button id="new-deck" class="btn btn-secondary">Deck mới</button>
+        </div>
+        <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap">
+          <span class="muted small">Deck đã lưu:</span>
+          <select id="deck-list-select" style="min-width:180px;"></select>
+          <button id="load-deck" class="btn btn-secondary">Nạp</button>
+          <button id="delete-deck" class="btn btn-secondary">Xóa</button>
+        </div>
+        <div class="row small" style="flex-wrap:wrap;gap:10px">
+          <div class="tag">Attack: <span id="cnt-attack">0</span></div>
+          <div class="tag">Defend: <span id="cnt-defend">0</span></div>
+          <div class="tag">Heal: <span id="cnt-heal">0</span></div>
+          <div class="tag">Curse: <span id="cnt-curse">0</span></div>
+          <button id="submit-deck" class="btn">Xác nhận Deck</button>
+        </div>
+        <div class="row" style="gap:30px;align-items:flex-start;flex-wrap:wrap;justify-content:center;margin-top:16px;">
+          <div style="min-width:480px;">
+            <div class="muted small" style="margin-bottom:6px;">Kéo thả lá bài vào deck của bạn:</div>
+            <div id="card-samples" class="hand" style="min-height:150px;">
+              <div class="cardbtn" draggable="true" data-type="attack" title="Attack"></div>
+              <div class="cardbtn" draggable="true" data-type="defend" title="Defend"></div>
+              <div class="cardbtn" draggable="true" data-type="heal" title="Heal"></div>
+              <div class="cardbtn" draggable="true" data-type="curse" title="Curse"></div>
+            </div>
+          </div>
+          <div style="min-width:480px;">
+            <div class="muted small" style="margin-bottom:6px;">Deck của bạn (kéo ra ngoài để xóa):</div>
+            <div id="deck-drop" class="hand" style="min-height:150px;border:2px dashed #334155;background:rgba(52,60,90,0.12);"></div>
+          </div>
+        </div>
+        <div class="muted small">Danh sách lá: <span id="deck-list"></span></div>
+        <div class="muted" id="deck-error" style="color:#ff8b8b;"></div>
+      </div>
+
+      <!-- GAME -->
+      <div id="screen-game" class="card" style="display:none;">
+        <div class="board">
+          <div class="opp-backs" id="opp-backs">
+            <div class="back"></div><div class="back"></div><div class="back"></div><div class="back"></div><div class="back"></div>
+          </div>
+
+          <!-- LEFT: YOU -->
+          <div class="side" id="you-side">
+            <img id="you-avatar" class="avatar" src="./assets/reimu.png" alt="You"/>
+            <div class="bar" style="width:100%">
+              <div><strong id="you-name">YOU</strong></div>
+              <div><span class="special-pill special-ready" id="you-special-pill">SPECIAL SKILL</span></div>
+            </div>
+            <div class="hpbar"><div id="you-hp" class="hpfill" style="width:100%"></div></div>
+            <div style="font-size:13px">HP: <span id="you-hp-text">100</span> | <span class="shieldline">Shield:</span> <span id="you-shield">0</span></div>
+          </div>
+
+          <!-- CENTER: TURN/TIMER + REVEAL -->
+          <div class="center-info">
+            <div class="badges">
+              <span class="tag">Turn: <span id="turn">1</span></span>
+              <span class="tag">Pha: <span id="phase">play</span></span>
+            </div>
+            <div class="timer" id="timer">20s</div>
+            <div class="reveal" id="reveal"></div>
+            <div class="muted last-played">Lá đã chơi: <span id="last-played"></span></div>
+          </div>
+
+          <!-- RIGHT: OPPONENT -->
+          <div class="side" id="op-side">
+            <img id="op-avatar" class="avatar" src="./assets/cirno.png" alt="Opponent"/>
+            <div class="bar" style="width:100%">
+              <div><strong id="op-name">OPPONENT</strong></div>
+              <div><span class="special-pill" id="op-special-pill">SPECIAL SKILL</span></div>
+            </div>
+            <div class="hpbar"><div id="op-hp" class="hpfill" style="width:100%"></div></div>
+            <div style="font-size:13px">HP: <span id="op-hp-text">100</span> | <span class="shieldline">Shield:</span> <span id="op-shield">0</span></div>
+          </div>
+
+          <!-- BOTTOM: HAND -->
+          <div class="bottom-area">
+            <h3 class="center" style="margin:6px 0 10px">Tay bài của bạn</h3>
+            <div class="hand-container">
+              <button id="special-skill-btn" class="special-btn">
+                <img src="./assets/btnSK.png" alt="Special Skill">
+              </button>
+              <div id="hand" class="hand"></div>
+            </div>
+            <div class="center muted small" id="deck-meta" style="margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const socket = io();
+      const rules = { HP_START:100, TURN_LIMIT:10, TURN_SECONDS:20, HAND_SIZE:5, DECK_MAX:15, TYPE_LIMIT:6 };
+      const $ = id=>document.getElementById(id);
+      const lobby=$("screen-lobby"), deck=$("screen-deck"), game=$("screen-game");
+      
+      // Set PvP mode flag
+      window.__MATCH_MODE__ = 'pvp';
+      sessionStorage.setItem('matchMode', 'pvp');
+      
+      // Special skill state
+      let specialSkillActive = false;
+      let specialSkillUsed = false;
+      let isSearching = false;
+      
+      // Special skill button state management
+      function updateSpecialButtonState() {
+        const btn = $("special-skill-btn");
+        if (!btn) {
+          console.warn('🎯 Special skill button not found in updateSpecialButtonState');
+          return;
+        }
+        
+        console.log('🎯 Updating special button state:', {
+          specialSkillUsed,
+          specialSkillActive,
+          currentClasses: Array.from(btn.classList)
+        });
+        
+        if (specialSkillUsed) {
+          btn.classList.add("disabled");
+          btn.classList.remove("active");
+          btn.disabled = true;
+          console.log('🎯 Set to disabled state');
+        } else if (specialSkillActive) {
+          btn.classList.add("active");
+          btn.classList.remove("disabled");
+          btn.disabled = false;
+          console.log('🎯 Set to active state');
+        } else {
+          btn.classList.remove("active", "disabled");
+          btn.disabled = false;
+          console.log('🎯 Set to normal state');
+        }
+      }
+
+      // Back to menu button
+      $("back-to-menu").onclick = () => {
+        // Check if currently in game, go back to lobby
+        if (game.style.display !== "none") {
+          game.style.display = "none";
+          lobby.style.display = "";
+        } else {
+          // If in lobby/deck, go to main menu
+          window.location.href = '/main_menu.html';
+        }
+      };
+
+      // Initialize lobby
+      window.onload = function() {
+        // Random background for game room
+        const backgrounds = [
+          './assets/background/bg3.png',
+          './assets/background/bg4.jpg', 
+          './assets/background/bg5.png',
+          './assets/background/bg6.jpg',
+          './assets/background/bg7.jpg',
+          './assets/background/background1.jpg',
+          './assets/background/background2.jpg'
+        ];
+        const randomBg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+        document.body.style.backgroundImage = `url('${randomBg}'), linear-gradient(45deg, rgba(11,15,22,0.8), rgba(26,36,64,0.9))`;
+        document.body.style.backgroundSize = 'cover, auto';
+        document.body.style.backgroundPosition = 'center, center';
+        document.body.style.backgroundRepeat = 'no-repeat, no-repeat';
+        document.body.style.backgroundAttachment = 'fixed, scroll';
+        
+        const user = sessionStorage.getItem('user');
+        if (!user) {
+          window.location.href = 'index.html';
+          return;
+        }
+        
+        const userData = JSON.parse(user);
+        $("player-name").textContent = userData.username || "Player";
+        
+        // Load saved avatar if available
+        const savedAvatar = sessionStorage.getItem('userAvatar');
+        if (savedAvatar) {
+          $("player-avatar").src = savedAvatar;
+        }
+        
+        // Setup special skill button event listener
+        setTimeout(() => {
+          const specialBtn = $("special-skill-btn");
+          if (specialBtn) {
+            console.log('🎯 Special skill button found and setting up listener');
+            specialBtn.onclick = () => {
+              console.log('🎯 Special skill button clicked! Current state:', {
+                specialSkillUsed,
+                specialSkillActive
+              });
+              if (!specialSkillUsed) {
+                specialSkillActive = !specialSkillActive;
+                console.log('🎯 Special skill toggled to:', specialSkillActive);
+                updateSpecialButtonState();
+              } else {
+                console.log('🎯 Special skill already used, cannot toggle');
+              }
+            };
+          } else {
+            console.warn('🎯 Special skill button not found!');
+          }
+        }, 100);
+        
+        // Initialize sidebar
+        initSidebar();
+
+        // Random BGM for PvP battles
+        if(window.BGM){
+          BGM.init().then(()=>{
+            BGM.setShuffle(true);
+            if(!BGM.isPlaying){
+              BGM.playRandom({fadeInMs:800});
+            } else {
+              BGM.playRandom({crossfadeMs:600});
+            }
+          }).catch(()=>{});
+        }
+        
+        // Add welcome messages
+        addEventLog('Kết nối thành công đến server - Chế độ PvP');
+        addChatMessage('System', 'Chào mừng đến với chế độ đấu người!');
+        
+        // Load available decks into selector
+        loadDeckSelector();
+      };
+
+      // Load deck selector
+      function loadDeckSelector() {
+        const decks = JSON.parse(localStorage.getItem('savedDecks')||'{}');
+        const selector = $("deck-selector");
+        selector.innerHTML = '<option value="">-- Chọn deck để chơi --</option>';
+        Object.keys(decks).forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          selector.appendChild(opt);
+        });
+      }
+
+      // Refresh decks button
+      $("refresh-decks").onclick = () => {
+        loadDeckSelector();
+        $("lobby-msg").textContent = "Đã tải lại danh sách deck!";
+      };
+
+      // Deck selector change
+      $("deck-selector").onchange = () => {
+        const selector = $("deck-selector");
+        const startBtn = $("start-match");
+        if (selector.value && !isSearching) {
+          startBtn.disabled = false;
+          $("lobby-msg").textContent = `Đã chọn deck: ${selector.value}`;
+        } else {
+          startBtn.disabled = true;
+          $("lobby-msg").textContent = "";
+        }
+      };
+
+      // Start match button for PvP mode
+      $("start-match").onclick = () => {
+        console.log("Start PvP match button clicked");
+        const name = $("player-name").textContent || "Player";
+        const character = $("character").value || "Reimu";
+        const playerAvatar = $("player-avatar").getAttribute('src');
+        
+        // Get selected deck
+        const selector = $("deck-selector");
+        const selectedDeckName = selector.value;
+        if (!selectedDeckName) {
+          alert("Vui lòng chọn deck để chơi!");
+          return;
+        }
+        
+        const decks = JSON.parse(localStorage.getItem('savedDecks')||'{}');
+        const selectedDeck = decks[selectedDeckName];
+        if (!selectedDeck) {
+          alert("Deck không tồn tại!");
+          return;
+        }
+        
+        // Set searching state
+        isSearching = true;
+        $("start-match").disabled = true;
+        $("start-match").textContent = "Đang tìm...";
+        $("waiting-status").style.display = "block";
+        
+        addEventLog(`Bắt đầu tìm trận PvP với deck: ${selectedDeckName}`);
+        addEventLog(`Nhân vật: ${character}`);
+        
+        // Save selected deck for the match
+        sessionStorage.setItem('playerDeck', JSON.stringify(selectedDeck));
+        
+        // Reset game state before starting new game
+        let myId = null;
+        let last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"play", turn:0, yCurse:0, oCurse:0};
+        
+        console.log("Emitting cardgame/join for PvP game");
+        socket.emit("cardgame/join", {name, character, isBot: false, avatar: playerAvatar});
+        $("lobby-msg").textContent = "Đang tìm đối thủ...";
+      };
+      
+      socket.on("cardgame/waiting",()=>{
+        console.log("Received cardgame/waiting event");
+        $("lobby-msg").textContent="Đang chờ người chơi khác...";
+        $("op-status").textContent = "Đang tìm đối thủ...";
+        addEventLog("Đang chờ đối thủ...");
+      });
+      
+      socket.on("cardgame/matched",(info)=>{
+        console.log("Received cardgame/matched event (PvP):", info);
+        
+        // Stop searching
+        isSearching = false;
+        $("start-match").textContent = "Tìm đối thủ";
+        $("waiting-status").style.display = "none";
+        
+        // Reset game state for new match
+        let last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"deckbuild", turn:0, yCurse:0, oCurse:0};
+        specialSkillActive = false;
+        specialSkillUsed = false;
+        updateSpecialButtonState();
+        
+        // Reset UI elements
+        $("turn").textContent = "1";
+        $("phase").textContent = "deckbuild";
+        $("timer").textContent = "20s";
+        $("last-played").textContent = "";
+        $("reveal").innerHTML = "";
+        
+        // Clear event log for new match
+        const eventMessages = document.getElementById('event-messages');
+        if (eventMessages) eventMessages.innerHTML = '';
+        
+        // Clear chat messages for new match  
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        
+        addEventLog("Đã ghép với người chơi! Chuẩn bị vào game...");
+        addChatMessage('System', 'Bắt đầu trận đấu PvP!');
+        const savedDeck = sessionStorage.getItem('playerDeck');
+        if (savedDeck) {
+          const deckArray = JSON.parse(savedDeck);
+          socket.emit("cardgame/submitDeck", deckArray);
+          $("lobby-msg").textContent = "Chờ đối thủ gửi deck...";
+        } else {
+          alert("Lỗi: Không tìm thấy deck đã chọn!");
+        }
+      });
+
+      // Rest of the game logic would be included here...
+      // (Deck builder, game mechanics, etc. - same as before but PvP-specific)
+
+      // Deck builder drag & drop + quản lý deck
+      let deckList=[];
+      const submitBtn = $("submit-deck");
+      let isInBotGame = false;
+      const countTypes=arr=>arr.reduce((a,t)=>(a[t]++,a),{attack:0,defend:0,heal:0,curse:0});
+      function refreshDeckUI(){
+        const c = countTypes(deckList);
+        $("cnt-attack").textContent = c.attack;
+        $("cnt-defend").textContent = c.defend;
+        $("cnt-heal").textContent   = c.heal;
+        $("cnt-curse").textContent  = c.curse;
+        $("deck-list").textContent  = deckList.join(", ");
+        // Render deck cards
+        const deckDrop = $("deck-drop");
+        deckDrop.innerHTML = "";
+        deckList.forEach((type, idx) => {
+          const card = document.createElement("div");
+          card.className = "cardbtn";
+          card.setAttribute("data-type", type);
+          card.setAttribute("draggable", "true");
+          card.title = type.charAt(0).toUpperCase() + type.slice(1);
+          card.ondragstart = e => {
+            e.dataTransfer.setData("text/plain", idx);
+            e.dataTransfer.effectAllowed = "move";
+          };
+          card.ondragend = e => {
+            if (e.dataTransfer.dropEffect === "none") {
+              deckList.splice(idx, 1);
+              refreshDeckUI();
+            }
+          };
+          deckDrop.appendChild(card);
+        });
+        // Hiển thị tiến độ & bật/tắt nút
+        const remain = rules.DECK_MAX - deckList.length;
+        submitBtn.disabled = remain !== 0;
+        submitBtn.textContent = remain === 0
+          ? "Xác nhận Deck (15/15)"
+          : `Thêm ${remain} lá nữa (${deckList.length}/15)`;
+        // Cập nhật danh sách deck đã lưu
+        updateDeckListSelect();
+      }
+
+      // Deck storage (localStorage)
+      function getSavedDecks() {
+        return JSON.parse(localStorage.getItem('savedDecks')||'{}');
+      }
+      function saveDeck(name, list) {
+        if (!name) return alert('Vui lòng nhập tên deck!');
+        const decks = getSavedDecks();
+        decks[name] = list.slice();
+        localStorage.setItem('savedDecks', JSON.stringify(decks));
+        updateDeckListSelect();
+        alert('Đã lưu deck!');
+      }
+      function deleteDeck(name) {
+        const decks = getSavedDecks();
+        if (decks[name]) { delete decks[name]; localStorage.setItem('savedDecks', JSON.stringify(decks)); }
+        updateDeckListSelect();
+      }
+      function updateDeckListSelect() {
+        const decks = getSavedDecks();
+        const sel = $("deck-list-select");
+        const cur = sel.value;
+        sel.innerHTML = '';
+        Object.keys(decks).forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name; opt.textContent = name;
+          sel.appendChild(opt);
+        });
+        if (cur && decks[cur]) sel.value = cur;
+      }
+      
+      // More socket events
+      socket.on("cardgame/deckError",m=>{$("deck-error").textContent=m;});
+      socket.on("cardgame/deckOk",()=>{
+        addEventLog("Deck đã được xác nhận. Bắt đầu trận đấu!");
+        deck.style.display="none";
+        game.style.display="";
+        
+        // Hide lobby when game starts
+        lobby.style.display="none";
+        
+        // Reset special skill state
+        specialSkillActive = false;
+        specialSkillUsed = false;
+        updateSpecialButtonState();
+        
+        // Reset game state when starting new game
+        last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"deckbuild", turn:0, yCurse:0, oCurse:0};
+        
+        // Reset UI displays for new game
+        $("turn").textContent = "0";
+        $("phase").textContent = "deckbuild";
+        $("timer").textContent = "20s";
+        $("last-played").textContent = "";
+        $("reveal").innerHTML = "";
+        $("you-name").textContent = "YOU";
+        $("op-name").textContent = "OPPONENT";
+      });
+
+      // Game render + effects
+      socket.on("connect",()=>{
+        myId=socket.id;
+        addEventLog("Kết nối thành công với server");
+      });
+
+      function charToAvatar(ch){return ch==="Marisa"?"./assets/marisa.png":"./assets/reimu.png";}
+      let turnTimer=null;
+      function setTimer(s){if(turnTimer)clearInterval(turnTimer);let r=s|0;const el=$("timer");el.textContent=r+"s";turnTimer=setInterval(()=>{r=Math.max(0,r-1);el.textContent=r+"s";if(r===0)clearInterval(turnTimer);},1000);}
+
+      function effect(container, className, ms=650){
+        const n=document.createElement("div"); n.className=className; container.appendChild(n);
+        setTimeout(()=>n.remove(), ms);
+      }
+      function setHp(sidePrefix, val, prev){
+        $(sidePrefix+"-hp-text").textContent=val;
+        const bar=$(sidePrefix+"-hp"); bar.style.width=Math.max(0,val)+"%";
+        if(prev!==undefined && val<prev){ bar.classList.add("hp-hit"); setTimeout(()=>bar.classList.remove("hp-hit"),250); }
+      }
+
+      function iconOf(type){
+        return type==="attack"?"🗡️":type==="defend"?"🛡️":type==="heal"?"❤️":type==="curse"?"☠️":"❔";
+      }
+      function buildFlip(type,label){
+        const el=document.createElement("div"); el.className="flip";
+        // Get card image path
+        let cardImage = '';
+        if (type === 'attack') cardImage = './assets/attack.jpg';
+        else if (type === 'defend') cardImage = './assets/shield.jpg';
+        else if (type === 'heal') cardImage = './assets/heal.jpg';
+        else if (type === 'curse') cardImage = './assets/curse.jpg';
+        el.innerHTML = `<div class="flip-inner">
+          <div class="flip-face flip-front"></div>
+          <div class="flip-face flip-back" ${cardImage ? `style="background-image: url('${cardImage}'); background-size: cover; background-position: center;"` : ''}></div>
+        </div>`;
+        return el;
+      }
+
+      function renderState(s){
+        console.log("Rendering PvP game state - Turn:", s.turn, "Phase:", s.phase);
+        myId = s.you || myId;
+        const you = s.players[myId];
+        const oppId = Object.keys(s.players).find(id=>id!==myId);
+        const opp = oppId ? s.players[oppId] : null;
+
+        // Update opponent info in PvP lobby/deck phase before game starts
+        try {
+          if (s.phase === 'deckbuild' && opp) {
+            const opStatusEl = document.getElementById('op-status');
+            if (opStatusEl) { 
+              opStatusEl.style.display='block'; 
+              opStatusEl.textContent = opp.submitted? 'Đã sẵn sàng' : 'Đang chọn deck...'; 
+            }
+          }
+        } catch(e){ /* ignore */ }
+
+        // Log turn changes
+        if (s.turn !== last.turn) {
+          addEventLog(`🎯 Lượt ${s.turn} - ${s.phase === 'play' ? 'Chọn bài' : s.phase === 'resolve' ? 'Giải quyết' : s.phase}`);
+        }
+
+        $("you-avatar").src = you?.avatar || charToAvatar(you?.character||"Reimu");
+        $("op-avatar").src  = opp?.avatar || charToAvatar(opp?.character||"Marisa");
+        $("you-name").textContent = you?.name || "YOU";
+        $("op-name").textContent = opp?.name || "OPPONENT";
+        $("you-special-pill").className = "special-pill " + (you?.specialUsed?"special-used":"special-ready");
+        $("op-special-pill").className  = "special-pill " + (opp?.specialUsed?"special-used":"");
+
+        // Update game state and UI
+        $("turn").textContent = s.turn;
+        $("phase").textContent = s.phase;
+        if(s.timerRemaining !== undefined) setTimer(s.timerRemaining);
+        if(s.lastPlayed && s.lastPlayed[myId]) $("last-played").textContent = iconOf(s.lastPlayed[myId]);
+        
+        setHp("you", you?.hp, last.yhp);
+        setHp("op", opp?.hp, last.ohp);
+        
+        // Update shields
+        const yshield = you?.shield || 0;
+        const oshield = opp?.shield || 0;
+        $("you-shield").textContent = yshield;
+        $("op-shield").textContent = oshield;
+        
+        // Visual effects for damage/healing
+        const yhp = you?.hp || 100;
+        const ohp = opp?.hp || 100;
+        if(yhp < last.yhp){ $("you-side").classList.add("damage-flash"); setTimeout(()=>$("you-side").classList.remove("damage-flash"),350); }
+        if(ohp < last.ohp){ $("op-side").classList.add("damage-flash"); setTimeout(()=>$("op-side").classList.remove("damage-flash"),350); }
+        if(yhp > last.yhp){ effect($("you-side"),"heal-spark",700); }
+        if(ohp > last.ohp){ effect($("op-side"),"heal-spark",700); }
+        if(yshield > last.yshield){ effect($("you-side"),"shield-pop",600); }
+        if(oshield > last.oshield){ effect($("op-side"),"shield-pop",600); }
+
+        // Play card sound effects when cards are revealed
+        if (s.phase === 'resolve' && (s.turn !== last.turn || last.phase !== 'resolve')) {
+          // Player
+          const myPlayed = s.players[myId]?.lastPlayed;
+          if (myPlayed && myPlayed.card && ["attack","heal","curse","defend"].includes(myPlayed.card)) {
+            try {
+              playCardSound(myPlayed.card === 'defend' ? 'shield' : myPlayed.card);
+            } catch (e) { console.warn('SFX error (player):', e); }
+          }
+          // Opponent
+          const opPlayed = s.players[oppId]?.lastPlayed;
+          if (opPlayed && opPlayed.card && ["attack","heal","curse","defend"].includes(opPlayed.card)) {
+            try {
+              playCardSound(opPlayed.card === 'defend' ? 'shield' : opPlayed.card);
+            } catch (e) { console.warn('SFX error (opponent):', e); }
+          }
+        }
+
+        // Opponent backs count ≈ số lá trên tay đối thủ
+        const oppBacks = $("opp-backs");
+        if (oppBacks) {
+          oppBacks.innerHTML = "";
+          const c = (s.hand || []).length || 5;
+          for(let i = 0; i < c; i++){
+            const d = document.createElement("div");
+            d.className = "back";
+            oppBacks.appendChild(d);
+          }
+        }
+
+        // Render my hand
+        const hand = $("hand");
+        if (hand) {
+          hand.innerHTML = "";
+          (s.hand || []).forEach((type, idx) => {
+            const b = document.createElement("button");
+            b.className = "cardbtn";
+            b.dataset.type = type;
+            b.onclick = () => {
+              const useSpecial = specialSkillActive && !specialSkillUsed;
+              if (useSpecial) {
+                specialSkillUsed = true;
+                specialSkillActive = false;
+                updateSpecialButtonState();
+                addEventLog(`🌟 Chọn lá bài ${type} với kỹ năng đặc biệt`);
+              } else {
+                addEventLog(`📋 Chọn lá bài ${type}`);
+              }
+              socket.emit("cardgame/play", {cardIndex: idx, useSpecial});
+            };
+            hand.appendChild(b);
+          });
+        }
+        
+        const deckMeta = $("deck-meta");
+        if (deckMeta) {
+          deckMeta.textContent = you?.submitted ? "Bạn đã gửi lựa chọn lượt này." : "";
+        }
+
+        // ===== Flip reveal when phase changes to resolve =====
+        const rev = $("reveal");
+        if (rev && s.phase === "resolve") {
+          // Find the two lastPlayed cards
+          const mine = s.players[myId]?.lastPlayed?.card;
+          const ops = opp?.lastPlayed?.card;
+          
+          // Log card plays
+          if(mine && mine !== "❌") {
+            const myNote = s.players[myId]?.lastPlayed?.note || mine;
+            addEventLog(`🃏 Bạn chơi: ${myNote}`);
+          }
+          if(ops && ops !== "❌") {
+            const opNote = opp?.lastPlayed?.note || ops;
+            addEventLog(`🎴 Đối thủ chơi: ${opNote}`);
+          }
+          
+          rev.innerHTML = "";
+          // build flip cards even if one side didn't play
+          const mineFlip = buildFlip(mine || "❌", "");
+          const opFlip = buildFlip(ops || "❌", "");
+          rev.appendChild(mineFlip);
+          rev.appendChild(opFlip);
+          // trigger flip after a tick
+          setTimeout(() => {
+            mineFlip.classList.add("flipped");
+            opFlip.classList.add("flipped");
+          }, 40);
+        } else if (rev) {
+          rev.innerHTML = "";
+        }
+        
+        last = {
+          yhp: you?.hp || 100,
+          ohp: opp?.hp || 100,
+          yshield: you?.shield || 0,
+          oshield: opp?.shield || 0,
+          phase: s.phase,
+          turn: s.turn,
+          yCurse: you?.curse || 0,
+          oCurse: opp?.curse || 0
+        };
+      }
+
+      socket.on("cardgame/state", (s) => {
+        console.log("Received PvP game state:", s);
+        renderState(s);
+      });
+
+      socket.on("cardgame/submitted",({player})=>{
+        if(player===myId){ $("you-special-pill").classList.add("pulse"); setTimeout(()=>$("you-special-pill").classList.remove("pulse"),800); }
+      });
+
+      socket.on("cardgame/end",(result)=>{
+        let resultType = "";
+        let title = "";
+        let details = "";
+        
+        if(result?.reason==="opponent_left"){ 
+          resultType = "win";
+          title = "CHIẾN THẮNG!";
+          details = "Đối thủ đã rời khỏi trận đấu";
+          addEventLog("Đối thủ rời khỏi trận đấu");
+        }
+        else{
+          const a=result.a,b=result.b; const my=(a.id===myId)?a:b, op=(a.id===myId)?b:a;
+          
+          if(my.hp>op.hp) {
+            resultType = "win";
+            title = "CHIẾN THẮNG!";
+            details = `Xuất sắc! Bạn đã giành chiến thắng sau ${result.turn} lượt.`;
+            addEventLog(`🎉 CHIẾN THẮNG! Kết thúc lượt ${result.turn} (${my.hp} vs ${op.hp})`);
+          } else if(my.hp<op.hp) {
+            resultType = "lose";
+            title = "THẤT BẠI";
+            details = `Tiếc quá! Bạn đã thua sau ${result.turn} lượt.`;
+            addEventLog(`😞 Thất bại. Kết thúc lượt ${result.turn} (${my.hp} vs ${op.hp})`);
+          } else {
+            resultType = "draw";
+            title = "HÒA";
+            details = `Trận đấu kết thúc hòa sau ${result.turn} lượt.`;
+            addEventLog(`🤝 Hòa. Kết thúc lượt ${result.turn} (${my.hp} vs ${op.hp})`);
+          }
+        }
+        
+        // Show result overlay
+        showGameResult(resultType, title, details, 
+          result.a?.id === myId ? result.a.hp : result.b.hp,
+          result.a?.id === myId ? result.b.hp : result.a.hp,
+          result.turn);
+      });
+      
+      // Function to show game result overlay
+      function showGameResult(type, title, details, yourHp, opHp, turn) {
+        // Play result sound
+        if (window.playGameResultSound) {
+          window.playGameResultSound(type);
+        }
+        
+        const overlay = $("game-result-overlay");
+        const titleEl = $("result-title");
+        const detailsEl = $("result-details");
+        const yourHpEl = $("your-final-hp");
+        const opHpEl = $("op-final-hp");
+        const turnEl = $("final-turn");
+        
+        // Update content
+        titleEl.textContent = title;
+        titleEl.className = `result-title ${type}`;
+        detailsEl.textContent = details;
+        yourHpEl.textContent = yourHp;
+        opHpEl.textContent = opHp;
+        turnEl.textContent = turn;
+        
+        // Show overlay
+        overlay.style.display = "flex";
+        
+        // Setup button handlers
+        const playAgainBtn = $("play-again-btn");
+        const backToMenuBtn = $("back-to-menu-btn");
+        
+        playAgainBtn.onclick = () => {
+          overlay.style.display = "none";
+          resetToLobby();
+        };
+        
+        backToMenuBtn.onclick = () => {
+          overlay.style.display = "none";
+          window.location.href = '/main_menu.html';
+        };
+      }
+      
+      // Function to reset game to lobby
+      function resetToLobby() {
+        game.style.display = "none";
+        deck.style.display = "none";
+        lobby.style.display = "";
+        $("lobby-msg").textContent = "";
+        deckList.length = 0;
+        refreshDeckUI();
+        
+        // Leave any existing card game rooms
+        if (socket.rooms) {
+          socket.rooms.forEach(roomId => {
+            if (roomId.startsWith('cardgame-') || roomId.startsWith('airoom-')) {
+              socket.leave(roomId);
+              console.log('Left PvP room:', roomId);
+            }
+          });
+        }
+      }
+
+      // Auto-load first deck on startup
+      setTimeout(()=>{
+        updateDeckListSelect();
+        const sel = $("deck-list-select");
+        if(sel.options.length > 0 && !sel.value) {
+          sel.value = sel.options[0].value;
+          $("deck-name").value = sel.value;
+        }
+      }, 100);
+
+      // Sidebar functionality
+      function initSidebar() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const targetTab = btn.dataset.tab;
+            
+            // Remove active class from all tabs and buttons
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding content
+            btn.classList.add('active');
+            document.getElementById(targetTab + '-tab').classList.add('active');
+          });
+        });
+        
+        // Chat input functionality
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-chat');
+        
+        function sendMessage() {
+          const message = chatInput.value.trim();
+          if (message) {
+            addChatMessage('Bạn', message);
+            chatInput.value = '';
+          }
+        }
+        
+        if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+        if (chatInput) {
+          chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              sendMessage();
+            }
+          });
+        }
+      }
+
+      // Initialize drag & drop after DOM load
+      window.addEventListener('DOMContentLoaded', () => {
+        // Drag from card-samples vào deck-drop
+        const deckDrop = $("deck-drop");
+        if (!deckDrop) {
+          console.error("Deck drop area not found!");
+          return;
+        }
+        
+        deckDrop.ondragover = e => { e.preventDefault(); deckDrop.style.background = "#232b3e33"; };
+        deckDrop.ondragleave = e => { deckDrop.style.background = ""; };
+        deckDrop.ondrop = e => {
+          e.preventDefault();
+          deckDrop.style.background = "";
+          const type = e.dataTransfer.getData("card-type");
+          if (type) {
+            const c = countTypes(deckList);
+            if (deckList.length >= rules.DECK_MAX) return alert("Đạt tối đa 15 lá.");
+            if (c[type] >= rules.TYPE_LIMIT) return alert("Mỗi loại tối đa 6 lá.");
+            deckList.push(type);
+            refreshDeckUI();
+          }
+        };
+        deckDrop.ondragend = e => { deckDrop.style.background = ""; };
+
+        // Drag từ card-samples
+        const cardSamples = document.querySelectorAll("#card-samples .cardbtn");
+        console.log("Found card samples:", cardSamples.length);
+        cardSamples.forEach(btn => {
+          btn.ondragstart = e => {
+            e.dataTransfer.setData("card-type", btn.getAttribute("data-type"));
+            e.dataTransfer.effectAllowed = "copy";
+            console.log("Dragging card type:", btn.getAttribute("data-type"));
+          };
+        });
+
+        // Submit deck button handler for PvP games
+        const submitBtn = $("submit-deck");
+        if (submitBtn) {
+          submitBtn.onclick = () => {
+            // Save deck locally for later use in PvP
+            sessionStorage.setItem('playerDeck', JSON.stringify(deckList));
+            deck.style.display = "none";
+            lobby.style.display = "";
+            $("start-match").disabled = false;
+            $("setup-deck").textContent = "Sửa Deck";
+            $("lobby-msg").textContent = "Deck đã sẵn sàng! Bạn có thể bắt đầu tìm trận.";
+          };
+        }
+        
+        console.log("PvP game drag & drop initialized");
+      });
+
+      // Chat and Event Log functions
+      function addChatMessage(sender, text) {
+        const chatMessages = document.getElementById('chat-messages');
+        if (!chatMessages) return; // Safety check
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        
+        const timestamp = new Date().toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        messageDiv.innerHTML = `
+          <div class="message-header">
+            <span class="sender">${sender}</span>
+            <span class="timestamp">${timestamp}</span>
+          </div>
+          <div class="message-text">${text}</div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      function addEventLog(text) {
+        const eventMessages = document.getElementById('event-messages');
+        if (!eventMessages) return; // Safety check
+        const eventDiv = document.createElement('div');
+        eventDiv.className = 'event';
+        
+        const timestamp = new Date().toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        
+        eventDiv.innerHTML = `
+          <div class="event-timestamp">${timestamp}</div>
+          <div class="event-text">${text}</div>
+        `;
+        
+        eventMessages.appendChild(eventDiv);
+        eventMessages.scrollTop = eventMessages.scrollHeight;
+      }
+      
+      // Initialize PvP game
+      addEventLog('PvP Battle Mode - Kết nối thành công đến server');
+      addChatMessage('System', 'Chào mừng đến với chế độ đấu PvP!');
+    
+      
+    </script>
+    </div> <!-- Close main-content -->
+  </body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "HP_START": 100,
+  "TURN_LIMIT": 10,
+  "TURN_SECONDS": 20,
+  "HAND_SIZE": 5,
+  "DECK_MAX": 15,
+  "TYPE_LIMIT": 6,
+  "CARD_VALUES": {
+    "attack": 25,
+    "defend": 20,
+    "heal": 20,
+    "curse": 0
+  },
+  "SPECIALS": {
+    "Miko": {
+      "id": "miko",
+      "name": "Blessing",
+      "description": "Double this turn's heal (+20).",
+      "affects": "heal",
+      "bonus": 20,
+      "oncePerGame": true
+    },
+    "Witch": {
+      "id": "witch",
+      "name": "Overcharge",
+      "description": "Double this turn's attack (+25).",
+      "affects": "attack",
+      "bonus": 25,
+      "oncePerGame": true
+    }
+  },
+  "CURSE": {
+    "id": "curse",
+    "name": "Curse",
+    "description": "Giảm 5HP và ATK đối phương mỗi lượt trong 5 lượt. Không cộng dồn khi kích hoạt mới.",
+    "duration": 5,
+    "hpDebuff": 5,
+    "atkDebuff": 5
+  }
+}

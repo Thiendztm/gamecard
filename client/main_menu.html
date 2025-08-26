@@ -7,7 +7,10 @@
     <title>Board Card Game</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/main_menu.css">
+    <link rel="stylesheet" href="css/gameplay.css">
     <link rel="stylesheet" href="css/character-sprites.css">
+    <link rel="stylesheet" href="css/music-player.css">
+    <link rel="stylesheet" href="css/settings_overlay.css">
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
     <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <script src="/socket.io/socket.io.js"></script>
@@ -15,6 +18,8 @@
     <script src="sfx-manager.js"></script>
     <script src="client.js"></script>
     <script src="main_menu.js"></script>
+    <script src="music-player.js"></script>
+    <script src="settings_overlay.js"></script>
 </head>
 <body>
 
@@ -80,7 +85,7 @@
         <div class="room-panel-overlay"></div>
         <div class="room-panel-content">
             <div class="room-panel-header">
-                <h2>Host a Duel</h2>
+                <h2>Tạo Phòng</h2>
                 <button class="close-room-panel">&times;</button>
             </div>
             
@@ -92,6 +97,14 @@
                                 <select class="type-select">
                                     <option value="single">Đánh với máy</option>
                                     <option value="match">Đánh với người</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label class="setting-label">Mode:</label>
+                                <select class="mode-select">
+                                    <option value="card">Card</option>
+                                    <option value="battle">Battle</option>
                                 </select>
                             </div>
                     
@@ -308,6 +321,112 @@
                 <div class="avatar-option" data-avatar="/DesignHud/cirno.png">
                     <img src="/DesignHud/cirno.png" alt="Cirno">
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Music Player -->
+    <div class="music-player-container" style="z-index: 1000;">
+        <div class="album-art">
+            <img id="album-image" src="../DesignHud/background6.png" alt="Album Art">
+        </div>
+        <div class="music-info">
+            <div class="song-title" id="song-title">bmg1</div>
+            <div class="controls">
+                <button id="prev-btn" class="control-btn">⏮</button>
+                <button id="play-pause-btn" class="control-btn">▶</button>
+                <button id="next-btn" class="control-btn">⏭</button>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <div class="time-info">
+                    <span id="current-time">0:00</span>
+                    <span id="duration">0:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <audio id="audio-player" preload="metadata">
+        <source src="audio/bgm1.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <!-- Deck Builder Modal -->
+    <div id="deck-builder-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2000; background: url('./assets/background/bg7.jpg') center/cover no-repeat fixed, linear-gradient(45deg, rgba(11,15,22,0.8), rgba(26,36,64,0.9));">
+        <button class="close-deck-builder" style="position: absolute; top: 20px; right: 30px; background: none; border: none; color: #fff; font-size: 32px; cursor: pointer; z-index: 2001;">&times;</button>
+        
+        <div class="wrap" style="width: 100%; height: 100%; padding: 20px; box-sizing: border-box;">
+            <h2>Deck Builder</h2>
+            <div class="row" style="gap:16px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+                <input id="deck-name" type="text" placeholder="Tên deck..." style="width:180px;" maxlength="20">
+                <button id="save-deck" class="btn">Lưu deck</button>
+                <button id="new-deck" class="btn btn-secondary">Deck mới</button>
+            </div>
+            <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap">
+                <span class="muted small">Deck đã lưu:</span>
+                <select id="deck-list-select" style="min-width:180px;"></select>
+                <button id="load-deck" class="btn btn-secondary">Nạp</button>
+                <button id="delete-deck" class="btn btn-secondary">Xóa</button>
+            </div>
+            <div class="row small" style="flex-wrap:wrap;gap:10px">
+                <div class="tag">Attack: <span id="cnt-attack">0</span></div>
+                <div class="tag">Defend: <span id="cnt-defend">0</span></div>
+                <div class="tag">Heal: <span id="cnt-heal">0</span></div>
+                <div class="tag">Curse: <span id="cnt-curse">0</span></div>
+                <button id="submit-deck" class="btn">Xác nhận Deck</button>
+            </div>
+            <div class="row" style="gap:30px;align-items:flex-start;flex-wrap:wrap;justify-content:center;margin-top:16px;">
+                <div style="min-width:480px;">
+                    <div class="muted small" style="margin-bottom:6px;">Kéo thả lá bài vào deck của bạn:</div>
+                    <div id="card-samples" class="hand" style="min-height:150px;">
+                        <div class="cardbtn" draggable="true" data-type="attack" title="Attack"></div>
+                        <div class="cardbtn" draggable="true" data-type="defend" title="Defend"></div>
+                        <div class="cardbtn" draggable="true" data-type="heal" title="Heal"></div>
+                        <div class="cardbtn" draggable="true" data-type="curse" title="Curse"></div>
+                    </div>
+                </div>
+                <div style="min-width:480px;">
+                    <div class="muted small" style="margin-bottom:6px;">Deck của bạn (kéo ra ngoài để xóa):</div>
+                    <div id="deck-drop" class="hand" style="min-height:150px;border:2px dashed #334155;background:rgba(52,60,90,0.12);"></div>
+                </div>
+            </div>
+            <div class="muted small">Danh sách lá: <span id="deck-list"></span></div>
+            <div class="muted" id="deck-error" style="color:#ff8b8b;"></div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay Modal -->
+    <div id="settings-overlay-modal" style="display: none;">
+        <div class="settings-bg" id="settings-overlay-dismiss"></div>
+        <div class="settings-container">
+            <div class="settings-header">
+                <h1 class="settings-title">Cài đặt</h1>
+            </div>
+            <div class="settings-content">
+                <div class="settings-section">
+                    <div class="section-title">Âm Thanh</div>
+                    <div class="control-row">
+                        <label class="control-label" for="overlay-bgm-range">BGM Volume</label>
+                        <div class="range-wrap">
+                            <input type="range" id="overlay-bgm-range" min="0" max="100" step="1">
+                            <span class="range-value" id="overlay-bgm-value">60%</span>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label" for="overlay-sfx-range">SFX Volume</label>
+                        <div class="range-wrap">
+                            <input type="range" id="overlay-sfx-range" min="0" max="100" step="1">
+                            <span class="range-value" id="overlay-sfx-value">80%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-footer">
+                <button class="btn ghost" id="overlay-default-btn">Mặc định</button>
+                <button class="btn primary" id="overlay-save-btn">Lưu</button>
             </div>
         </div>
     </div>

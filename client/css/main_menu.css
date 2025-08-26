@@ -668,7 +668,7 @@ img {
     gap: 15px;
 }
 
-.format-select, .type-select, .rules-select {
+.format-select, .type-select, .rules-select, .mode-select {
     padding: 10px 15px;
     background: #666;
     border: 1px solid #555;
