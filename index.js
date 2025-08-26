@@ -90,10 +90,13 @@ app.use(express.static(path.join(__dirname, 'client'), {
             res.setHeader('Content-Type', 'application/javascript');
         } else if (path.endsWith('.html')) {
             res.setHeader('Content-Type', 'text/html');
+        } else if (path.endsWith('.txt')) {
+            res.setHeader('Content-Type', 'text/plain');
         }
     }
 }));
 app.use('/DesignHud', express.static(path.join(__dirname, 'DesignHud')));
+app.use('/skill', express.static(path.join(__dirname, 'client/skill')));
 
 // Game rooms storage
 const gameRooms = new Map();
@@ -283,26 +286,17 @@ app.post('/api/login', async (req, res) => {
         if (!user) {
             return res.status(401).json({ 
                 success: false, 
-                message: 'Tài khoản không tồn tại' 
-            });
-        }
-
-        // Compare password with hashed password
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        
-        if (!passwordMatch) {
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Mật khẩu không đúng' 
+                message: 'Tên đăng nhập hoặc mật khẩu không đúng' 
             });
         }
 
         res.json({ 
             success: true, 
-            message: 'Đăng nhập thành công!',
+            message: 'Đăng nhập thành công',
             user: {
                 username: user.username,
-                email: user.email
+                email: user.email,
+                registeredAt: user.registeredAt
             }
         });
 
@@ -311,6 +305,51 @@ app.post('/api/login', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Có lỗi xảy ra, vui lòng thử lại' 
+        });
+    }
+});
+
+app.get('/api/profile/:username', (req, res) => {
+    try {
+        const { username } = req.params;
+        
+        // Handle AI user specially
+        if (username === 'AI') {
+            return res.json({ 
+                success: true,
+                profile: {
+                    username: 'AI',
+                    email: 'ai@gamecard.com',
+                    registeredAt: new Date(),
+                    avatar: '/DesignHud/marisa2.png'
+                }
+            });
+        }
+        
+        const user = registeredUsers.get(username);
+        
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Người dùng không tồn tại' 
+            });
+        }
+
+        res.json({ 
+            success: true,
+            profile: {
+                username: user.username,
+                email: user.email,
+                registeredAt: user.registeredAt,
+                avatar: `/DesignHud/${username === 'marisa' ? 'marisa' : 'reimu'}2.png`
+            }
+        });
+
+    } catch (error) {
+        console.error('Profile fetch error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Có lỗi xảy ra khi lấy thông tin người dùng' 
         });
     }
 });
@@ -324,7 +363,28 @@ io.on('connection', (socket) => {
     // Handle room creation
     socket.on('createRoom', (roomData) => {
         try {
-            console.log('Creating room:', roomData);
+            console.log('SERVER: Creating room:', roomData);
+            console.log('SERVER: Room gameMode:', roomData.gameMode, 'Room type:', roomData.type);
+            console.log('SERVER: Full room data on creation:', JSON.stringify(roomData, null, 2));
+            
+            // For AI mode, add AI player immediately
+            if (roomData.gameMode === 'single') {
+                // Use selected AI character or default to marisa
+                const selectedCharacter = roomData.aiCharacter || 'marisa';
+                
+                roomData.players.push({
+                    id: 'AI_OPPONENT',
+                    name: 'AI',
+                    ready: true,
+                    avatar: `/DesignHud/${selectedCharacter}2.png`,
+                    isAI: true,
+                    character: selectedCharacter
+                });
+                
+                // Don't auto-ready the host in AI mode - let them choose character first
+                roomData.players[0].ready = false;
+            }
+            
             gameRooms.set(roomData.id, roomData);
             playerRooms.set(socket.id, roomData.id);
             
@@ -336,8 +396,15 @@ io.on('connection', (socket) => {
             // Join socket room
             socket.join(roomData.id);
             
-            // Broadcast new room to all clients
-            io.emit('roomCreated', roomData);
+            if (roomData.gameMode === 'single') {
+                // For AI mode, don't auto-start - wait for player to be ready
+                // The game will start when both players are ready (including AI which is already ready)
+            } else {
+                // Broadcast new room to all clients for multiplayer
+                io.emit('roomCreated', roomData);
+                // Only broadcast multiplayer rooms to public room list
+                io.emit('roomList', Array.from(gameRooms.values()).filter(room => room.gameMode === 'match'));
+            }
             
             // Send room joined confirmation to creator
             socket.emit('roomJoined', roomData);
@@ -485,6 +552,22 @@ io.on('connection', (socket) => {
                 });
                 
                 console.log(`Player ${playerId} ready status: ${ready} in room ${roomId}`);
+                
+                // Check if all players are ready to start game
+                if (room.players.every(p => p.ready)) {
+                    console.log(`All players ready in room ${roomId}, starting game...`);
+                    
+                    const maps = ['map1', 'map2', 'map3', 'map4', 'map5'];
+                    const randomMap = maps[Math.floor(Math.random() * maps.length)];
+                    
+                    // Start the game
+                    io.to(roomId).emit('gameStart', {
+                        roomId: roomId,
+                        map: randomMap,
+                        selectedMap: `${randomMap}.html`,
+                        isAIMode: room.gameMode === 'single'
+                    });
+                }
             }
         } catch (error) {
             console.error('Error updating ready status:', error);
@@ -530,18 +613,49 @@ io.on('connection', (socket) => {
             
             // Check if all players are ready
             if (room.players.length === room.maxPlayers && room.players.every(p => p.ready)) {
-                // Randomly select a map
-                const maps = ['map1.html', 'map2.html', 'map3.html', 'map4.html', 'map5.html'];
-                const selectedMap = maps[Math.floor(Math.random() * maps.length)];
-                
-                // Start game for all players in room
-                io.to(roomId).emit('gameStart', {
+                let selectedMap;
+                let gameStartData = {
                     roomId: roomId,
                     players: room.players,
-                    selectedMap: selectedMap
+                    gameMode: room.gameMode
+                };
+                
+                console.log('Game start - Room gameMode:', room.gameMode, 'Room type:', room.type);
+                console.log('Full room data:', JSON.stringify(room, null, 2));
+                
+                console.log('Checking AI battle condition:', {
+                    gameMode: room.gameMode,
+                    type: room.type,
+                    isAI: room.gameMode === 'single' || room.type === 'Đánh với máy'
                 });
                 
-                console.log(`Game started in room ${roomId} with map: ${selectedMap}`);
+                if (room.gameMode === 'single') {
+                    // Use regular maps for AI battles (map1-5.html)
+                    const maps = ['map1.html', 'map2.html', 'map3.html', 'map4.html', 'map5.html'];
+                    selectedMap = maps[Math.floor(Math.random() * maps.length)];
+                    
+                    console.log('Selected AI map:', selectedMap);
+                    
+                    // Find AI player and get character
+                    const aiPlayer = room.players.find(p => p.isAI);
+                    gameStartData.aiCharacter = aiPlayer ? aiPlayer.character : 'marisa';
+                    gameStartData.playerCharacter = room.players.find(p => !p.isAI)?.selectedCharacter || 'reimu';
+                } else {
+                    // Use regular maps for multiplayer
+                    const maps = ['map1.html', 'map2.html', 'map3.html', 'map4.html', 'map5.html'];
+                    selectedMap = maps[Math.floor(Math.random() * maps.length)];
+                    
+                    console.log('Selected multiplayer map:', selectedMap);
+                }
+                
+                console.log('FINAL MAP SELECTION:', selectedMap);
+                
+                gameStartData.selectedMap = selectedMap;
+                
+                // Start game for all players in room
+                io.to(roomId).emit('gameStart', gameStartData);
+                
+                console.log(`Game started in room ${roomId} with map: ${selectedMap}`, gameStartData);
                 
                 // Remove room after game starts
                 gameRooms.delete(roomId);
@@ -558,7 +672,8 @@ io.on('connection', (socket) => {
     socket.on('getRoomList', () => {
         // Clean up empty rooms and disconnected players before sending list
         cleanupRooms();
-        socket.emit('roomList', Array.from(gameRooms.values()));
+        // Only send multiplayer rooms to public room list
+        socket.emit('roomList', Array.from(gameRooms.values()).filter(room => room.gameMode === 'match'));
     });
     
     // Handle combat actions
@@ -1004,8 +1119,8 @@ function cleanupRooms() {
     });
     
     if (roomsToDelete.length > 0) {
-        // Broadcast updated room list
-        io.emit('roomList', Array.from(gameRooms.values()));
+        // Broadcast updated room list (only multiplayer rooms)
+        io.emit('roomList', Array.from(gameRooms.values()).filter(room => room.gameMode === 'match'));
     }
 }
 
