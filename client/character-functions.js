@@ -264,7 +264,7 @@ class CharacterManager {
         
         const characterSprite = document.createElement('img');
         characterSprite.id = 'character-sprite';
-        characterSprite.src = `/DesignHud/${character}map.png`;
+        characterSprite.src = `/DesignHud/${character}4.png`;
         characterSprite.alt = character;
         characterSprite.className = 'character-sprite user-sprite';
         
@@ -368,12 +368,14 @@ class CharacterManager {
         
         opponentSprite.onload = function() {
             console.log('Opponent sprite loaded successfully:', this.src);
-            // Show action panel after opponent sprite loads
-            const actionPanel = document.querySelector('.action-panel');
-            if (actionPanel) {
-                actionPanel.classList.add('show');
-                console.log('Action panel shown after opponent sprite loaded');
-            }
+            // Show action panel after 2 second delay
+            setTimeout(() => {
+                const actionPanel = document.querySelector('.action-panel');
+                if (actionPanel) {
+                    actionPanel.classList.add('show');
+                    console.log('Action panel shown after 2 second delay');
+                }
+            }, 3000);
         };
         
         document.body.appendChild(opponentSprite);

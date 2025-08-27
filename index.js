@@ -823,17 +823,23 @@ io.on('connection', (socket) => {
             
             // For AI mode, add AI player immediately
             if (roomData.gameMode === 'single') {
-                // Use selected AI character or default to marisa
-                const selectedCharacter = roomData.aiCharacter || 'marisa';
+                console.log('DEBUG: Adding AI player to room');
+                // For "Đánh với máy" Battle mode, AI always selects Marisa
+                const selectedCharacter = (roomData.type === 'Đánh với máy' && roomData.mode === 'Battle') ? 'marisa' : (roomData.aiCharacter || 'marisa');
+                console.log('DEBUG: AI selected character:', selectedCharacter);
                 
-                roomData.players.push({
+                const aiPlayer = {
                     id: 'AI_OPPONENT',
                     name: 'AI',
                     ready: true,
                     avatar: `/DesignHud/${selectedCharacter}2.png`,
                     isAI: true,
                     character: selectedCharacter
-                });
+                };
+                
+                roomData.players.push(aiPlayer);
+                console.log('DEBUG: AI player added:', aiPlayer);
+                console.log('DEBUG: Room now has', roomData.players.length, 'players');
                 
                 // Don't auto-ready the host in AI mode - let them choose character first
                 roomData.players[0].ready = false;
@@ -1020,16 +1026,9 @@ io.on('connection', (socket) => {
                             players: room.players
                         });
                     } else {
-                        // Start battle mode
-                        const maps = ['map1', 'map2', 'map3', 'map4', 'map5'];
-                        const randomMap = maps[Math.floor(Math.random() * maps.length)];
-                        
-                        io.to(roomId).emit('gameStart', {
-                            roomId: roomId,
-                            map: randomMap,
-                            selectedMap: `${randomMap}.html`,
-                            isAIMode: room.gameMode === 'single'
-                        });
+                        // Use the existing startGame logic instead of duplicating
+                        console.log('Triggering startGame event for battle mode...');
+                        socket.emit('startGame', { roomId: roomId });
                     }
                 }
             }
@@ -1094,16 +1093,41 @@ io.on('connection', (socket) => {
                 });
                 
                 if (room.gameMode === 'single') {
-                    // Use regular maps for AI battles (map1-5.html)
-                    const maps = ['map1.html', 'map2.html', 'map3.html', 'map4.html', 'map5.html'];
-                    selectedMap = maps[Math.floor(Math.random() * maps.length)];
+                    // Debug room mode
+                    console.log('DEBUG: room.mode =', room.mode);
+                    console.log('DEBUG: room.mode === "Battle" =', room.mode === 'Battle');
+                    console.log('DEBUG: typeof room.mode =', typeof room.mode);
+                    
+                    // Use dedicated AI battle maps for Battle mode, regular maps for Card mode
+                    if (room.mode === 'Battle') {
+                        console.log('DEBUG: Using battle maps');
+                        const battleMaps = ['map1-battle.html', 'map2-battle.html', 'map3-battle.html', 'map4-battle.html', 'map5-battle.html'];
+                        selectedMap = battleMaps[Math.floor(Math.random() * battleMaps.length)];
+                    } else {
+                        console.log('DEBUG: Using regular maps, room.mode =', room.mode);
+                        const maps = ['map1.html', 'map2.html', 'map3.html', 'map4.html', 'map5.html'];
+                        selectedMap = maps[Math.floor(Math.random() * maps.length)];
+                    }
                     
                     console.log('Selected AI map:', selectedMap);
                     
                     // Find AI player and get character
                     const aiPlayer = room.players.find(p => p.isAI);
+                    const humanPlayer = room.players.find(p => !p.isAI);
+                    
                     gameStartData.aiCharacter = aiPlayer ? aiPlayer.character : 'marisa';
-                    gameStartData.playerCharacter = room.players.find(p => !p.isAI)?.selectedCharacter || 'reimu';
+                    gameStartData.playerCharacter = humanPlayer?.selectedCharacter || 'reimu';
+                    
+                    // Create character selections for AI battles
+                    gameStartData.characterSelections = {};
+                    if (humanPlayer) {
+                        gameStartData.characterSelections[humanPlayer.name] = humanPlayer.selectedCharacter || 'reimu';
+                    }
+                    if (aiPlayer) {
+                        gameStartData.characterSelections['AI'] = aiPlayer.character;
+                    }
+                    
+                    console.log('AI battle character selections:', gameStartData.characterSelections);
                 } else {
                     // Use regular maps for multiplayer
                     const maps = ['map1.html', 'map2.html', 'map3.html', 'map4.html', 'map5.html'];
@@ -1643,8 +1667,12 @@ function resolveCombatTurn(roomId, session, turn) {
                 player1Heal = player1Skill.heal || 0;
                 
                 // Special effects
-                if (player1Skill.special === 'execute_low_hp' && player2.hp < 50) {
-                    player1Damage = player2.hp; // Instant kill
+                if (player1Skill.special === 'execute_low_hp') {
+                    // Check if opponent will have <= 10 HP after taking damage
+                    const opponentHPAfterDamage = player2.hp - player1Damage;
+                    if (opponentHPAfterDamage <= 10 && opponentHPAfterDamage > 0) {
+                        player1Damage = player2.hp; // Execute - instant kill
+                    }
                 } else if (player1Skill.special === 'enhance_attack_2_turns') {
                     player1.attackBonus = 5;
                     player1.attackBonusTurns = 2;
@@ -1680,8 +1708,12 @@ function resolveCombatTurn(roomId, session, turn) {
                     player2Heal = player2Skill.heal || 0;
                     
                     // Special effects
-                    if (player2Skill.special === 'execute_low_hp' && player1.hp < 50) {
-                        player2Damage = player1.hp; // Instant kill
+                    if (player2Skill.special === 'execute_low_hp') {
+                        // Check if opponent will have <= 10 HP after taking damage
+                        const opponentHPAfterDamage = player1.hp - player2Damage;
+                        if (opponentHPAfterDamage <= 10 && opponentHPAfterDamage > 0) {
+                            player2Damage = player1.hp; // Execute - instant kill
+                        }
                     } else if (player2Skill.special === 'enhance_attack_2_turns') {
                         player2.attackBonus = 5;
                         player2.attackBonusTurns = 2;

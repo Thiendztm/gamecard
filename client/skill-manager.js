@@ -76,7 +76,7 @@ class SkillManager {
         }
 
         // Special effects
-        if (description.includes('< 50 hp tất sát')) {
+        if (description.includes('<= 10 hp tất sát')) {
             special = 'execute_low_hp';
         } else if (description.includes('Cường hóa đòn đánh')) {
             special = 'enhance_attack';
@@ -112,8 +112,8 @@ class SkillManager {
         let actualDamage = skill.damage;
         let actualHeal = skill.heal;
 
-        // Special effect: Execute if target < 50 HP
-        if (skill.special === 'execute_low_hp' && targetHP < 50) {
+        // Special effect: Execute if target <= 10 HP after damage
+        if (skill.special === 'execute_low_hp' && (targetHP - actualDamage) <= 10) {
             actualDamage = targetHP; // Instant kill
         }
 

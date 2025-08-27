@@ -263,6 +263,10 @@ function initializeCharacterSelection() {
     
     // Handle cancel button
     cancelBtn.addEventListener('click', () => {
+        // Play cancel sound effect
+        if (window.sfxManager) {
+            window.sfxManager.play('cancel');
+        }
         characterModal.style.display = 'none';
         currentPlayer = null;
         selectedCharacter = null;
@@ -271,6 +275,10 @@ function initializeCharacterSelection() {
     // Close modal when clicking outside
     characterModal.addEventListener('click', (e) => {
         if (e.target === characterModal) {
+            // Play cancel sound effect
+            if (window.sfxManager) {
+                window.sfxManager.play('cancel');
+            }
             characterModal.style.display = 'none';
             currentPlayer = null;
             selectedCharacter = null;
@@ -302,7 +310,15 @@ function updateCharacterDisplays() {
         currentRoom.players.forEach((player, index) => {
             const playerPosition = index + 1;
             const display = document.getElementById(`player${playerPosition}-selected`);
-            const playerCharacter = roomCharacterSelections[player.name];
+            
+            // For AI players, use the character property directly
+            // For human players, use roomCharacterSelections
+            let playerCharacter;
+            if (player.isAI && player.character) {
+                playerCharacter = player.character;
+            } else {
+                playerCharacter = roomCharacterSelections[player.name];
+            }
             
             if (display) {
                 if (playerCharacter) {
@@ -436,7 +452,7 @@ function disableCharacterSelection() {
                     border: 2px solid #ff8c42;
                     box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
                 `;
-                cardModeIndicator.innerHTML = '🎴 <strong>Chế độ Card AI</strong> - Không cần chọn nhân vật';
+                cardModeIndicator.innerHTML = '🎴 <strong>Chế độ Card AI</strong>';
                 
                 // Insert at the very top
                 const firstChild = waitingRoomContent.firstChild;
@@ -473,7 +489,7 @@ function addPvPCardModeIndicator() {
                 border: 2px solid #66BB6A;
                 box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
             `;
-            cardModeIndicator.innerHTML = '🎴 <strong>Chế độ Card PvP</strong> - Không cần chọn nhân vật';
+            cardModeIndicator.innerHTML = '🎴 <strong>Chế độ Card PvP</strong>';
             
             // Insert at the very top
             const firstChild = waitingRoomContent.firstChild;
@@ -1135,14 +1151,13 @@ function toggleReady() {
             return;
         }
         
-        // For Card mode with AI, skip character selection requirement
+        // Only redirect to gameAI.html for Card mode with AI, NOT Battle mode
         const isCardModeAI = currentRoom.gameMode === 'single' && currentRoom.mode === 'Card';
-        const isAIMode = currentRoom.type === 'Đánh với máy';
         
-        if (isCardModeAI || isAIMode || window.cardModeActive) {
+        if (isCardModeAI || window.cardModeActive) {
             console.log('AI Card mode detected in toggleReady, redirecting to gameAI.html...');
             
-            // Store game data for AI battle
+            // Store game data for AI card battle
             const gameData = {
                 roomId: currentRoom.id,
                 gameMode: 'card',
@@ -1154,7 +1169,7 @@ function toggleReady() {
             sessionStorage.setItem('currentPlayerId', user.username);
             sessionStorage.setItem('matchMode', 'ai');
             
-            // Direct redirect to gameAI.html for AI Card battles
+            // Direct redirect to gameAI.html for AI Card battles only
             window.location.href = 'gameAI.html';
             return;
         }
@@ -1200,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', function() {
         deckBtn.onclick = function() {
             // Play select sound effect
             if (window.sfxManager) {
-                window.sfxManager.playSelect();
+                window.sfxManager.play('select');
             }
             // Open deck builder modal
             openDeckBuilder();
@@ -1231,6 +1246,10 @@ document.addEventListener('DOMContentLoaded', function() {
         closeRoomBtn.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
+            // Play cancel sound effect
+            if (window.sfxManager) {
+                window.sfxManager.play('cancel');
+            }
             closeRoomPanel();
         };
     }
@@ -1258,17 +1277,33 @@ document.addEventListener('DOMContentLoaded', function() {
         roomPanelOverlay.onclick = function(e) {
             // Only close if clicking on the overlay itself, not its children
             if (e.target === roomPanelOverlay) {
+                // Play cancel sound effect
+                if (window.sfxManager) {
+                    window.sfxManager.play('cancel');
+                }
                 closeRoomPanel();
             }
         };
     }
     
     if (closeWaitingRoomBtn) {
-        closeWaitingRoomBtn.onclick = closeWaitingRoom;
+        closeWaitingRoomBtn.onclick = function() {
+            // Play cancel sound effect
+            if (window.sfxManager) {
+                window.sfxManager.play('cancel');
+            }
+            closeWaitingRoom();
+        };
     }
     
     if (leaveRoomBtn) {
-        leaveRoomBtn.onclick = closeWaitingRoom;
+        leaveRoomBtn.onclick = function() {
+            // Play cancel sound effect
+            if (window.sfxManager) {
+                window.sfxManager.play('cancel');
+            }
+            closeWaitingRoom();
+        };
     }
     
     if (readyBtn) {
@@ -1276,7 +1311,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (waitingRoomOverlay) {
-        waitingRoomOverlay.onclick = closeWaitingRoom;
+        waitingRoomOverlay.onclick = function(e) {
+            if (e.target === waitingRoomOverlay) {
+                // Play cancel sound effect
+                if (window.sfxManager) {
+                    window.sfxManager.play('cancel');
+                }
+                closeWaitingRoom();
+            }
+        };
     }
     
     if (refreshRoomsBtn) {
@@ -1288,11 +1331,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (cancelBrowserBtn) {
-        cancelBrowserBtn.onclick = closeRoomBrowser;
+        cancelBrowserBtn.onclick = function() {
+            // Play cancel sound effect
+            if (window.sfxManager) {
+                window.sfxManager.play('cancel');
+            }
+            closeRoomBrowser();
+        };
     }
     
     if (roomBrowserOverlay) {
-        roomBrowserOverlay.onclick = closeRoomBrowser;
+        roomBrowserOverlay.onclick = function(e) {
+            if (e.target === roomBrowserOverlay) {
+                // Play cancel sound effect
+                if (window.sfxManager) {
+                    window.sfxManager.play('cancel');
+                }
+                closeRoomBrowser();
+            }
+        };
     }
     
     if (hostRoomBtn) {
@@ -1307,6 +1364,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (closeDeckBuilderBtn) {
         closeDeckBuilderBtn.onclick = function() {
+            // Play cancel sound effect
+            if (window.sfxManager) {
+                window.sfxManager.play('cancel');
+            }
             closeDeckBuilder();
         };
     }
@@ -1407,6 +1468,10 @@ function openProfile(username = null) {
         profileViewer.onclick = function(e) {
             // Only close if clicking on the profile-viewer background, not on the profile container
             if (e.target === profileViewer) {
+                // Play cancel sound effect
+                if (window.sfxManager) {
+                    window.sfxManager.play('cancel');
+                }
                 closeProfile();
             }
         };
@@ -1604,7 +1669,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const profileSearchInput = document.getElementById('profile-search-input');
 
     if (closeProfileBtn) {
-        closeProfileBtn.onclick = closeProfile;
+        closeProfileBtn.onclick = function() {
+            // Play cancel sound effect
+            if (window.sfxManager) {
+                window.sfxManager.play('cancel');
+            }
+            closeProfile();
+        };
     }
 
     if (searchProfileBtn) {
@@ -1837,10 +1908,7 @@ function openDeckBuilder() {
 }
 
 function closeDeckBuilder() {
-    // Play cancel sound effect
-    if (window.sfxManager) {
-        window.sfxManager.playCancel();
-    }
+    // Cancel sound is already handled in the button click handler
     
     const modal = document.getElementById('deck-builder-modal');
     if (modal) {

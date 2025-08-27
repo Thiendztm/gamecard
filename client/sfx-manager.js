@@ -10,17 +10,35 @@ class SFXManager {
         // Sound mappings based on hd.txt instructions
         const soundFiles = {
             // UI Sounds
-            select: 'select00.wav',    // For selection/click buttons
-            cancel: 'cancel00.wav',    // For back/return buttons
+            back: 'cancel00.wav',      // For back/cancel actions
+            cancel: 'cancel00.wav',    // Alias for back/cancel actions
+            select: 'select00.wav',    // For selections/clicks
             
             // Combat Sounds
             attack: 'lazer00.wav',     // For attack actions
-            power: 'power1.wav',       // For skill usage
-            powerup: 'powerup.wav',    // For healing/buffs
-            death: 'pldead00.wav',     // For player death
-            hit: 'tan00.wav',          // For taking damage
+            skill: 'power1.wav',       // For skill usage
+            heal: 'powerup.wav',       // For healing
+            death: 'pldead00.wav',     // For death
+            hit: 'tan00.wav',          // For damage taken
             special: 'nep00.wav'       // For special effects
         };
+
+        // Add sounds from audio folder
+        this.shieldSound = new Audio('/audio/shield.mp3');
+        this.shieldSound.volume = this.volume;
+        this.shieldSound.preload = 'auto';
+        
+        this.healSound = new Audio('/audio/heal.mp3');
+        this.healSound.volume = this.volume;
+        this.healSound.preload = 'auto';
+        
+        this.curseSound = new Audio('/audio/curse.mp3');
+        this.curseSound.volume = this.volume;
+        this.curseSound.preload = 'auto';
+        
+        this.attackSound = new Audio('/audio/attack.mp3');
+        this.attackSound.volume = this.volume;
+        this.attackSound.preload = 'auto';
 
         // Preload all sound files
         Object.keys(soundFiles).forEach(key => {
@@ -31,16 +49,42 @@ class SFXManager {
     }
 
     play(soundName, volume = null) {
-        if (!this.enabled || !this.sounds[soundName]) {
+        if (!this.enabled) {
             return;
         }
 
         try {
-            const sound = this.sounds[soundName].cloneNode();
-            sound.volume = volume !== null ? volume : this.volume;
-            sound.play().catch(e => {
-                console.log(`Could not play sound ${soundName}:`, e);
-            });
+            if (soundName === 'shield') {
+                const sound = this.shieldSound.cloneNode();
+                sound.volume = volume !== null ? volume : this.volume;
+                sound.play().catch(e => {
+                    console.log(`Could not play shield sound:`, e);
+                });
+            } else if (soundName === 'skillHeal') {
+                const sound = this.healSound.cloneNode();
+                sound.volume = volume !== null ? volume : this.volume;
+                sound.play().catch(e => {
+                    console.log(`Could not play heal sound:`, e);
+                });
+            } else if (soundName === 'skillCurse') {
+                const sound = this.curseSound.cloneNode();
+                sound.volume = volume !== null ? volume : this.volume;
+                sound.play().catch(e => {
+                    console.log(`Could not play curse sound:`, e);
+                });
+            } else if (soundName === 'skillAttack') {
+                const sound = this.attackSound.cloneNode();
+                sound.volume = volume !== null ? volume : this.volume;
+                sound.play().catch(e => {
+                    console.log(`Could not play attack sound:`, e);
+                });
+            } else if (this.sounds[soundName]) {
+                const sound = this.sounds[soundName].cloneNode();
+                sound.volume = volume !== null ? volume : this.volume;
+                sound.play().catch(e => {
+                    console.log(`Could not play sound ${soundName}:`, e);
+                });
+            }
         } catch (error) {
             console.log(`Error playing sound ${soundName}:`, error);
         }
@@ -51,6 +95,19 @@ class SFXManager {
         Object.values(this.sounds).forEach(sound => {
             sound.volume = this.volume;
         });
+        // Update audio folder sounds volume too
+        if (this.shieldSound) {
+            this.shieldSound.volume = this.volume;
+        }
+        if (this.healSound) {
+            this.healSound.volume = this.volume;
+        }
+        if (this.curseSound) {
+            this.curseSound.volume = this.volume;
+        }
+        if (this.attackSound) {
+            this.attackSound.volume = this.volume;
+        }
     }
 
     toggle() {

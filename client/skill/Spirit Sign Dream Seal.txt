@@ -1,3 +1,3 @@
 Spirit Sign "Dream Seal"
-Gây 40 sát thương, < 50 hp tất sát
+Gây 40 sát thương, <= 10 hp tất sát
 Tốn 80 MP.

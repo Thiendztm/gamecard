@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function(){
   function close(){ 
     modal.style.display='none'; 
     if(window.sfxManager) { 
-      window.sfxManager.playCancel(); 
+      window.sfxManager.play('cancel'); 
     } 
   }
 
