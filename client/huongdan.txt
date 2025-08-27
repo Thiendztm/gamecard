@@ -1,4 +1,0 @@
-I want you to adjust the related codes as follows:
-In the room creation table: If the room creator chooses Type as "Fight with people" and Mode as "Card", it will create a waiting room table and wait for other players to enter, this table only has a ready button and when both are ready, it will go to gamePlay.html
-If the room creator chooses Type as "Fight with people" and Mode as "Battle", it will create a waiting room table and wait for other players to enter, this table will have a ready button and choose a character, when both have chosen a character and are ready, it will go to a random map (1,2,3,4,5).html
-Please cover the codes related to this and adjust and edit appropriately

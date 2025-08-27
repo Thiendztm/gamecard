@@ -1,9 +1,0 @@
-turn base 
-chọn đánh sẽ gây 10 sát thương lên đối thủ 
-khi chọn xong sẽ đợi đối thủ chọn rồi mới bắt đầu thực thi 
-mỗi người chơi sẽ được thủ 3 lần, mỗi lần thủ sẽ chặn toàn bộ sát thương ( nằm dưới MP: của user sprite)
-//HP: 150
-  MP: 150
-Phòng thủ 3/3 //
-
-Khi người chơi xài kỹ năng thì combat status hiện: Bạn đã xài //tên kỹ năng// gây N sát thương và tốn N MP, đối phương sử dụng //tên kỹ năng// và gây N sát thương

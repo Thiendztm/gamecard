@@ -8,6 +8,10 @@ const nodemailer = require('nodemailer');
 const helmet = require('helmet');
 const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
+const { AIBot, AIBotManager } = require('./bot.js');
+
+// Game rules for card game
+const rules = JSON.parse(fs.readFileSync(path.join(__dirname, 'rules.json')));
 
 // Development vs Production logging
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -98,31 +102,17 @@ app.use(express.static(path.join(__dirname, 'client'), {
 app.use('/DesignHud', express.static(path.join(__dirname, 'DesignHud')));
 app.use('/skill', express.static(path.join(__dirname, 'client/skill')));
 
-// Game rooms storage
-const gameRooms = new Map();
-const playerRooms = new Map(); // Track which room each player is in
-const playerSockets = new Map(); // Track socket ID for each player
-
-// Combat game sessions
-const combatSessions = new Map(); // Track active combat sessions
-
-let emailConfig;
-try {
-    emailConfig = require('./email-config.js');
-} catch (error) {
-    console.warn('Email config file not found. Please create email-config.js from email-config.example.js');
-    emailConfig = {
-        service: 'gmail',
-        auth: {
-            user: 'nekohimeken@gmail.com',
-            pass: 'rrme sewt tucm cfcu'
-        },
-        from: 'nekohimeken@gmail.com'
-    };
-}
+// Email configuration
+const emailConfig = {
+    service: 'gmail',
+    auth: {
+        user: 'nekohimeken@gmail.com',
+        pass: 'rrme sewt tucm cfcu'
+    },
+    from: 'nekohimeken@gmail.com'
+};
 
 const transporter = nodemailer.createTransport(emailConfig);
-
 const verificationCodes = new Map();
 const registeredUsers = new Map();
 
@@ -133,6 +123,470 @@ app.get('/healthcheck', (req, res) => {
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/client/index.html');
 });
+
+// Socket.IO connection handling
+const gameRooms = new Map();
+const playerRooms = new Map(); // Track which room each player is in
+const playerSockets = new Map(); // Track socket IDs for each player
+const combatSessions = new Map(); // Track combat sessions
+const cardGameSessions = new Map(); // Track card game sessions
+const cardGameRooms = new Map(); // Track card game rooms for new AI system
+const pvpWaitingQueue = new Map(); // Track players waiting for PvP matches
+
+// Card game room ID counter
+let nextCardGameRoomId = 1;
+let cardGameWaiting = null; // Track waiting player for PvP matchmaking
+
+// Initialize AI Bot Manager
+const aiManager = new AIBotManager();
+
+// Cleanup AI bots every hour
+setInterval(() => {
+    aiManager.cleanup();
+}, 3600000);
+
+// Card game helper functions
+function createCardGameRoom(a, b) {
+    const id = "cardgame-" + (nextCardGameRoomId++);
+    const room = {
+        id,
+        players: {},
+        phase: "deckbuild",
+        turn: 0,
+        turnEndsAt: 0,
+        timer: null,
+        submissions: {},
+        lastPlayed: {},
+        isAIGame: false
+    };
+    cardGameRooms.set(id, room);
+
+    for (const s of [a,b]) {
+        s.join(id);
+        room.players[s.id] = {
+            id: s.id,
+            name: s.data?.name || "Player",
+            character: s.data?.character || "Miko",
+            hp: rules.HP_START,
+            shield: 0,
+            deck: [],
+            hand: [],
+            discard: [],
+            specialUsed: false
+        };
+    }
+
+    io.to(id).emit("cardgame/matched", { roomId: id, phase: room.phase });
+    for (const sid of [a.id, b.id]) {
+        io.to(sid).emit("cardgame/state", privateCardGameState(room, sid));
+    }
+    return room;
+}
+
+function publicCardGameState(room) {
+    const now = Date.now();
+    return {
+        roomId: room.id,
+        phase: room.phase,
+        turn: room.turn,
+        turnEndsAt: room.turnEndsAt,
+        timerRemaining: Math.max(0, Math.floor((room.turnEndsAt - now) / 1000)),
+        players: Object.fromEntries(Object.entries(room.players).map(([sid, p]) => [sid, ({
+            name: p.name,
+            character: p.character,
+            hp: p.hp,
+            shield: p.shield,
+            specialUsed: p.specialUsed,
+            submitted: !!room.submissions[sid],
+            lastPlayed: room.lastPlayed[sid] || null
+        })])),
+    };
+}
+
+function privateCardGameState(room, sid) {
+    const pub = publicCardGameState(room);
+    const me = room.players[sid];
+    return {
+        ...pub,
+        you: sid,
+        hand: me.hand
+    };
+}
+
+function startCardGameTurn(room) {
+    room.phase = "play";
+    room.turn += 1;
+    console.log(`Starting turn ${room.turn} for room ${room.id}`);
+    room.submissions = {};
+    room.lastPlayed = {};
+    room.turnEndsAt = Date.now() + rules.TURN_SECONDS * 1000;
+
+    // send fresh state to both players (with private hands)
+    for (const sid of Object.keys(room.players)) {
+        if (sid.startsWith("ai-bot")) continue; // Don't send to AI
+        const playerSocket = io.sockets.sockets.get(sid);
+        if (playerSocket) {
+            playerSocket.emit("cardgame/state", privateCardGameState(room, sid));
+        }
+    }
+
+    // Handle AI turn if this is an AI game
+    if (room.isAIGame) {
+        handleAITurn(room);
+    }
+
+    // schedule timeout check
+    clearTimeout(room.timer);
+    room.timer = setTimeout(() => {
+        resolveCardGameTurn(room);
+    }, rules.TURN_SECONDS * 1000 + 50);
+}
+
+// ===== AI BOT LOGIC =====
+function createAIRoom(humanSocket, roomType = "single", aiDifficulty = "medium") {
+    const id = "airoom-" + (nextCardGameRoomId++);
+    
+    // Clear any existing timers for this socket
+    const existingRooms = [...cardGameRooms.values()];
+    existingRooms.forEach(room => {
+        if (room.timer) {
+            clearTimeout(room.timer);
+        }
+    });
+    
+    // Get human player data
+    const user = JSON.parse(humanSocket.data?.user || '{}');
+    const humanPlayer = humanSocket.data?.name || user.username || "Player";
+    const humanCharacter = humanSocket.data?.character || "Miko";
+    
+    // Get player stats for adaptive difficulty (only if not specified)
+    let finalDifficulty = aiDifficulty;
+    if (aiDifficulty === "adaptive") {
+        const registeredUser = registeredUsers.get(humanPlayer);
+        const playerStats = registeredUser?.stats || null;
+        finalDifficulty = getAdaptiveDifficulty(playerStats);
+    }
+    
+    // Create AI bot with specified difficulty
+    const aiBot = aiManager.createBot(null, "Witch", finalDifficulty);
+    aiBot.generateDeck();
+    
+    console.log(`Created AI room: ${id} with bot ${aiBot.name} (${aiBot.difficulty})`);
+    
+    const room = {
+        id,
+        players: {},
+        phase: "deckbuild",
+        turn: 0, // Always start from 0
+        turnEndsAt: 0,
+        timer: null,
+        submissions: {},
+        lastPlayed: {},
+        isAIGame: true,
+        aiBot: aiBot
+    };
+    cardGameRooms.set(id, room);
+    
+    console.log(`AI Room ${id} created with turn: ${room.turn}`); // Debug log
+
+    // Add human player
+    humanSocket.join(id);
+    room.players[humanSocket.id] = {
+        id: humanSocket.id,
+        name: humanPlayer,
+        character: humanCharacter,
+        hp: rules.HP_START,
+        shield: 0,
+        deck: [],
+        hand: [],
+        discard: [],
+        specialUsed: false
+    };
+
+    // Add AI bot player
+    room.players[aiBot.id] = {
+        id: aiBot.id,
+        name: aiBot.name,
+        character: aiBot.character,
+        hp: aiBot.hp,
+        shield: aiBot.shield,
+        deck: aiBot.deck,
+        hand: aiBot.hand,
+        discard: aiBot.discard,
+        specialUsed: aiBot.specialUsed
+    };
+
+    io.to(id).emit("cardgame/matched", { 
+        roomId: id, 
+        phase: room.phase, 
+        isAIGame: true,
+        aiOpponent: {
+            name: aiBot.name,
+            character: aiBot.character,
+            difficulty: aiBot.difficulty
+        }
+    });
+    io.to(humanSocket.id).emit("cardgame/state", privateCardGameState(room, humanSocket.id));
+    
+    return room;
+}
+
+// Helper function to get adaptive difficulty based on player stats
+function getAdaptiveDifficulty(playerStats) {
+    if (!playerStats) return "medium";
+    
+    const totalGames = (playerStats.aiWins || 0) + (playerStats.aiLosses || 0) + (playerStats.aiDraws || 0);
+    if (totalGames === 0) return "medium";
+    
+    const winRate = (playerStats.aiWins || 0) / totalGames;
+    
+    if (winRate < 0.3) return "easy";
+    if (winRate < 0.5) return "medium";
+    if (winRate < 0.7) return "hard";
+    return "expert";
+}
+
+// Helper function to get AI difficulty display name
+function getAIDifficultyDisplayName(difficulty) {
+    const names = {
+        'easy': 'Dễ',
+        'medium': 'Trung bình',
+        'hard': 'Khó', 
+        'expert': 'Chuyên gia'
+    };
+    return names[difficulty] || 'Trung bình';
+}
+
+function handleAITurn(room) {
+    const aiBot = room.aiBot;
+    if (!aiBot) return;
+    
+    const humanId = Object.keys(room.players).find(id => id !== aiBot.id);
+    const humanPlayer = room.players[humanId];
+    
+    // Create game state for AI decision making
+    const gameState = {
+        turn: room.turn,
+        players: room.players,
+        phase: room.phase
+    };
+    
+    // AI makes decision using the bot logic
+    const decision = aiBot.makeDecision(gameState);
+    
+    // Submit AI decision after a delay to simulate thinking
+    const thinkingTime = aiBot.difficulty === "easy" ? 500 + Math.random() * 1000 : 
+                        aiBot.difficulty === "medium" ? 1000 + Math.random() * 1500 :
+                        aiBot.difficulty === "hard" ? 1500 + Math.random() * 2000 :
+                        2000 + Math.random() * 2500; // expert
+    
+    setTimeout(() => {
+        if (room.phase === "play" && !room.submissions[aiBot.id]) {
+            // Validate AI decision
+            let finalDecision = decision;
+            if (decision.cardIndex >= aiBot.hand.length || decision.cardIndex < 0) {
+                finalDecision = { cardIndex: 0, useSpecial: false };
+            }
+            
+            room.submissions[aiBot.id] = {
+                card: finalDecision.cardIndex,
+                useSpecial: finalDecision.useSpecial
+            };
+            
+            io.to(room.id).emit("cardgame/submitted", { 
+                player: aiBot.id,
+                isAI: true 
+            });
+            
+            console.log(`AI ${aiBot.name} submitted: card ${finalDecision.cardIndex}, special: ${finalDecision.useSpecial}`);
+            
+            // If both players have submitted, resolve turn
+            if (Object.keys(room.submissions).length === Object.keys(room.players).length) {
+                resolveCardGameTurn(room);
+            }
+        }
+    }, thinkingTime);
+}
+
+function resolveCardGameTurn(room) {
+    if (room.phase !== "play") return;
+
+    room.phase = "resolve";
+
+    // apply penalties for non-submission
+    for (const [sid, p] of Object.entries(room.players)) {
+        if (!room.submissions[sid]) {
+            p.hp -= 20;
+            room.lastPlayed[sid] = { card: null, note: "No play (-20 HP)" };
+        }
+    }
+
+    // calculate effects
+    const ids = Object.keys(room.players);
+    if (ids.length !== 2) return; // sanity
+
+    const [aId, bId] = ids;
+    const A = room.players[aId];
+    const B = room.players[bId];
+
+    function applySubmission(source, target, sub, sid) {
+        if (!sub) return;
+        const { card, useSpecial } = sub;
+        // Remove card from hand -> discard
+        if (card != null && card >= 0 && card < source.hand.length) {
+            const type = source.hand[card];
+            source.discard = source.discard || [];
+            source.discard.push(type);
+            source.hand.splice(card, 1);
+
+            let note = type;
+            // Special handling
+            if (useSpecial && !source.specialUsed) {
+                if (source.character === "Miko" && type === "heal") {
+                    // heal bonus from rules.json
+                    source._bonus = { heal: rules.SPECIALS.Miko.bonus };
+                    source.specialUsed = true;
+                    note += " + Special";
+                } else if (source.character === "Witch" && type === "attack") {
+                    source._bonus = { attack: rules.SPECIALS.Witch.bonus };
+                    source.specialUsed = true;
+                    note += " + Special";
+                } else {
+                    note += " (special had no effect)";
+                }
+            }
+
+            // queue effect
+            if (type === "defend") {
+                source._queued = source._queued || [];
+                source._queued.push({ kind: "shield", amount: rules.CARD_VALUES.defend });
+            } else if (type === "heal") {
+                let healAmount = rules.CARD_VALUES.heal;
+                if (source.curse && source.curse.turns > 0) {
+                    healAmount = Math.floor(healAmount * 0.75); // Reduced heal when cursed
+                    source.curse = null; // giải curse
+                    source._curedCurse = true;
+                }
+                const bonus = (source._bonus && source._bonus.heal) || 0;
+                source._queued = source._queued || [];
+                source._queued.push({ kind: "heal", amount: healAmount + bonus });
+            } else if (type === "attack") {
+                const bonus = (source._bonus && source._bonus.attack) || 0;
+                source._queued = source._queued || [];
+                source._queued.push({ kind: "attack", amount: rules.CARD_VALUES.attack + bonus });
+            } else if (type === "curse") {
+                // Áp dụng curse lên đối phương nếu chưa bị hoặc đã hết
+                if (!target.curse || !target.curse.turns || target.curse.turns <= 0) {
+                    target.curse = { turns: 3 };
+                }
+                // Ghi chú
+                note += " (Curse)";
+            }
+
+            room.lastPlayed[sid] = { card: type, note };
+        }
+    }
+
+    applySubmission(A, B, room.submissions[aId], aId);
+    applySubmission(B, A, room.submissions[bId], bId);
+
+    // Resolve order: shield/heal apply to self immediately, attacks then applied taking shield into account
+    function applySelfEffects(p) {
+        if (!p._queued) return;
+        for (const eff of p._queued) {
+            if (eff.kind === "shield") p.shield = (p.shield || 0) + eff.amount;
+            if (eff.kind === "heal") p.hp = Math.min(rules.HP_START, p.hp + eff.amount);
+        }
+    }
+    applySelfEffects(A);
+    applySelfEffects(B);
+
+    // Áp dụng hiệu ứng curse mỗi lượt (sau khi heal, trước attack)
+    for (const p of [A, B]) {
+        if (p.curse && p.curse.turns > 0) {
+            p.hp -= 10;
+            p.curse.turns--;
+            if (p.curse.turns <= 0) p.curse = null;
+        }
+    }
+
+    function dealDamage(target, amount) {
+        let remaining = amount;
+        const absorbed = Math.min(target.shield || 0, remaining);
+        target.shield = (target.shield || 0) - absorbed;
+        remaining -= absorbed;
+        target.hp -= remaining;
+    }
+
+    function applyAttacks(source, target) {
+        if (!source._queued) return;
+        let atkDebuff = 0;
+        if (source.curse && source.curse.turns > 0) {
+            atkDebuff = 5;
+        }
+        for (const eff of source._queued) {
+            if (eff.kind === "attack") dealDamage(target, Math.max(0, eff.amount - atkDebuff));
+        }
+    }
+    applyAttacks(A, B);
+    applyAttacks(B, A);
+
+    // cleanup temp
+    for (const p of [A,B]) {
+        delete p._queued;
+        delete p._bonus;
+    }
+
+    // draw up to hand size
+    for (const p of [A,B]) {
+        const need = Math.max(0, 5 - p.hand.length);
+        for (let i = 0; i < need; i++) {
+            if (p.deck && p.deck.length > 0) {
+                const randomIndex = Math.floor(Math.random() * p.deck.length);
+                p.hand.push(p.deck.splice(randomIndex, 1)[0]);
+            }
+        }
+    }
+
+    // Send resolve state
+    for (const sid of Object.keys(room.players)) {
+        if (sid.startsWith("ai-bot")) continue;
+        const playerSocket = io.sockets.sockets.get(sid);
+        if (playerSocket) {
+            playerSocket.emit("cardgame/state", privateCardGameState(room, sid));
+        }
+    }
+
+    // check end conditions
+    const someoneDead = A.hp <= 0 || B.hp <= 0;
+    const turnLimit = room.turn >= 10;
+    if (someoneDead || turnLimit) {
+        endCardGame(room);
+        return;
+    }
+
+    // start next turn shortly
+    setTimeout(() => startCardGameTurn(room), 2000);
+}
+
+function endCardGame(room) {
+    const players = Object.values(room.players);
+    const result = {
+        a: players[0],
+        b: players[1] || { hp: 0 },
+        turn: room.turn
+    };
+    
+    for (const sid of Object.keys(room.players)) {
+        if (sid.startsWith("ai-bot")) continue;
+        const playerSocket = io.sockets.sockets.get(sid);
+        if (playerSocket) {
+            playerSocket.emit("cardgame/end", result);
+        }
+    }
+    
+    cardGameSessions.delete(room.id);
+}
 
 app.post('/api/register', async (req, res) => {
     try {
@@ -555,16 +1009,28 @@ io.on('connection', (socket) => {
                 if (room.players.every(p => p.ready)) {
                     console.log(`All players ready in room ${roomId}, starting game...`);
                     
-                    const maps = ['map1', 'map2', 'map3', 'map4', 'map5'];
-                    const randomMap = maps[Math.floor(Math.random() * maps.length)];
-                    
-                    // Start the game
-                    io.to(roomId).emit('gameStart', {
-                        roomId: roomId,
-                        map: randomMap,
-                        selectedMap: `${randomMap}.html`,
-                        isAIMode: room.gameMode === 'single'
-                    });
+                    // Check if this is PvP Card mode
+                    if (room.gameMode === 'match' && room.mode?.toLowerCase() === 'card') {
+                        console.log('PvP Card mode detected, starting card game...');
+                        // Start PvP card game
+                        io.to(roomId).emit('cardGameStarted', {
+                            roomId: roomId,
+                            gameMode: 'card',
+                            isAI: false,
+                            players: room.players
+                        });
+                    } else {
+                        // Start battle mode
+                        const maps = ['map1', 'map2', 'map3', 'map4', 'map5'];
+                        const randomMap = maps[Math.floor(Math.random() * maps.length)];
+                        
+                        io.to(roomId).emit('gameStart', {
+                            roomId: roomId,
+                            map: randomMap,
+                            selectedMap: `${randomMap}.html`,
+                            isAIMode: room.gameMode === 'single'
+                        });
+                    }
                 }
             }
         } catch (error) {
@@ -644,6 +1110,10 @@ io.on('connection', (socket) => {
                     selectedMap = maps[Math.floor(Math.random() * maps.length)];
                     
                     console.log('Selected multiplayer map:', selectedMap);
+                    
+                    // Include character selections for multiplayer battles
+                    gameStartData.characterSelections = room.characterSelections || {};
+                    console.log('Including character selections for multiplayer:', gameStartData.characterSelections);
                 }
                 
                 console.log('FINAL MAP SELECTION:', selectedMap);
@@ -821,7 +1291,307 @@ io.on('connection', (socket) => {
             }
         }
     });
+    
+    
+    socket.on("cardgame/join", ({ name, character, isBot }) => {
+        socket.data.name = name || "Player";
+        socket.data.character = character || "Miko";
+
+        if (isBot) {
+            // Leave any existing rooms first
+            const currentRooms = [...socket.rooms];
+            currentRooms.forEach(roomId => {
+                if (roomId.startsWith("cardgame-") || roomId.startsWith("airoom-")) {
+                    socket.leave(roomId);
+                    // Clean up the room if it exists
+                    const existingRoom = cardGameRooms.get(roomId);
+                    if (existingRoom) {
+                        delete existingRoom.players[socket.id];
+                        if (Object.keys(existingRoom.players).length === 0) {
+                            cardGameRooms.delete(roomId);
+                        }
+                    }
+                }
+            });
+            
+            // Create AI room for single player
+            const aiDifficulty = "medium"; // Default difficulty, could be passed from client
+            const room = createAIRoom(socket, "single", aiDifficulty);
+            socket.emit("cardgame/matched");
+            socket.emit("cardgame/state", privateCardGameState(room, socket.id));
+        } else {
+            // Normal multiplayer matchmaking
+            if (!cardGameWaiting) {
+                cardGameWaiting = socket.id;
+                socket.emit("cardgame/waiting");
+            } else if (cardGameWaiting !== socket.id) {
+                const other = io.sockets.sockets.get(cardGameWaiting);
+                cardGameWaiting = null;
+                const room = createCardGameRoom(other, socket);
+                io.to(room.id).emit("cardgame/deckphase", { message: "Submit your deck (max 12, max 5 per type)." });
+            }
+        }
+    });
+
+    socket.on('leaveCardGameRoom', (data) => {
+        try {
+            const { roomId } = data;
+            const room = cardGameRooms.get(roomId);
+            
+            if (room && room.players[socket.id]) {
+                const playerName = room.players[socket.id].name;
+                delete room.players[socket.id];
+                socket.leave(roomId);
+                
+                // Notify other players
+                socket.to(roomId).emit('playerLeftCardGame', {
+                    playerName: playerName,
+                    players: room.players
+                });
+
+                // Clean up empty rooms
+                if (Object.keys(room.players).length === 0) {
+                    cardGameRooms.delete(roomId);
+                    console.log(`Deleted empty card game room: ${roomId}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error leaving card game room:', error);
+        }
+    });
+
+    function getUsernameFromSocket(socket) {
+        // Try to get username from socket handshake or session
+        return socket.handshake?.auth?.username || socket.username || 'Player';
+    }
+    
+    socket.on('cardgame/submitDeck', (deckArray) => {
+        try {
+            console.log('Deck submitted:', deckArray);
+            
+            // Find the room this player is in
+            let room = null;
+            for (const [roomId, r] of cardGameRooms.entries()) {
+                if (r.players[socket.id]) {
+                    room = r;
+                    break;
+                }
+            }
+            
+            if (!room) {
+                socket.emit('cardgame/deckError', 'Room not found');
+                return;
+            }
+            
+            // Validate deck
+            if (!Array.isArray(deckArray) || deckArray.length !== 15) {
+                socket.emit('cardgame/deckError', 'Deck must have exactly 15 cards');
+                return;
+            }
+            
+            // Count card types
+            const typeCounts = {};
+            deckArray.forEach(card => {
+                typeCounts[card] = (typeCounts[card] || 0) + 1;
+            });
+            
+            // Check max 5 per type
+            for (const [type, count] of Object.entries(typeCounts)) {
+                if (count > 5) {
+                    socket.emit('cardgame/deckError', `Too many ${type} cards (max 5)`);
+                    return;
+                }
+            }
+            
+            // Set player deck and generate hand
+            const player = room.players[socket.id];
+            player.deck = [...deckArray];
+            player.hand = shuffleAndDeal(deckArray, 5);
+            player.submitted = true;
+            
+            socket.emit('cardgame/deckOk');
+            
+            if (room.isAIGame) {
+                // AI game - generate AI deck and start immediately
+                const aiBot = room.aiBot;
+                if (aiBot) {
+                    aiBot.generateDeck();
+                    const aiPlayer = room.players[aiBot.id];
+                    aiPlayer.deck = aiBot.deck;
+                    aiPlayer.hand = shuffleAndDeal(aiBot.deck, 5);
+                    aiPlayer.submitted = true;
+                }
+                
+                // Start AI game
+                room.phase = 'play';
+                room.turn = 1;
+                room.turnEndsAt = Date.now() + 20000;
+                
+                // Send initial game state
+                setTimeout(() => {
+                    socket.emit('cardgame/state', privateCardGameState(room, socket.id));
+                    console.log(`AI game started for room ${room.id}`);
+                }, 1000);
+            } else {
+                // PvP game - check if both players submitted
+                const allPlayersSubmitted = Object.values(room.players).every(p => p.submitted);
+                
+                if (allPlayersSubmitted) {
+                    // Start PvP game
+                    console.log(`Both players submitted deck, starting PvP game: ${room.id}`);
+                    setTimeout(() => {
+                        startCardGameTurn(room);
+                    }, 1000);
+                } else {
+                    // Wait for other player
+                    socket.emit('cardgame/state', privateCardGameState(room, socket.id));
+                    console.log('Waiting for other player to submit deck');
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error in cardgame/submitDeck:', error);
+            socket.emit('cardgame/deckError', 'Error processing deck');
+        }
+    });
+    
+    socket.on('cardgame/play', (data) => {
+        try {
+            const { cardIndex, useSpecial } = data;
+            console.log('Player played card:', data);
+            
+            // Find room this player is in
+            let room = null;
+            for (const [roomId, r] of cardGameRooms.entries()) {
+                if (r.players[socket.id]) {
+                    room = r;
+                    break;
+                }
+            }
+            
+            if (!room || room.phase !== 'play') return;
+            if (room.submissions[socket.id]) return; // Already submitted
+            
+            const player = room.players[socket.id];
+            
+            if (cardIndex >= 0 && cardIndex < player.hand.length) {
+                // Record submission
+                room.submissions[socket.id] = { 
+                    card: cardIndex, 
+                    useSpecial: !!useSpecial 
+                };
+                
+                console.log(`Player ${socket.id} submitted card ${cardIndex} in room ${room.id}`);
+                
+                // Check if all players submitted
+                const allSubmitted = Object.keys(room.submissions).length === Object.keys(room.players).length;
+                
+                if (allSubmitted) {
+                    console.log(`All players submitted in room ${room.id}, resolving turn`);
+                    // All players submitted, resolve turn
+                    resolveCardGameTurn(room);
+                } else if (room.isAIGame) {
+                    // Trigger AI turn if this is an AI game and human just played
+                    console.log(`Triggering AI turn in room ${room.id}`);
+                    handleAITurn(room);
+                }
+            }
+        } catch (error) {
+            console.error('Error in cardgame/play:', error);
+        }
+    });
 });
+
+// Helper functions for card game
+function shuffleAndDeal(deck, count) {
+    const shuffled = [...deck];
+    // Fisher-Yates shuffle algorithm for proper randomization
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, count);
+}
+
+function generateAIDeck() {
+    const deck = [];
+    // Balanced AI deck
+    for (let i = 0; i < 4; i++) deck.push('attack');
+    for (let i = 0; i < 4; i++) deck.push('defend');
+    for (let i = 0; i < 4; i++) deck.push('heal');
+    for (let i = 0; i < 3; i++) deck.push('curse');
+    
+    // Fisher-Yates shuffle for AI deck too
+    for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    return deck;
+}
+
+function resolveTurn(session, playerId) {
+    const player = session.players[playerId];
+    const aiPlayer = session.players['ai-bot'];
+    
+    const playerCard = player.lastPlayed?.card;
+    const aiCard = aiPlayer.lastPlayed?.card;
+    
+    console.log(`Resolving: Player ${playerCard} vs AI ${aiCard}`);
+    
+    // Simple combat resolution
+    let playerDamage = 0;
+    let aiDamage = 0;
+    
+    if (playerCard === 'attack') playerDamage = 10;
+    if (aiCard === 'attack') aiDamage = 10;
+    
+    // Apply special effects
+    if (player.lastPlayed?.useSpecial && player.character === 'Marisa') {
+        playerDamage += 25; // Marisa attack bonus
+    } else if (player.lastPlayed?.useSpecial && player.character === 'Reimu' && playerCard === 'heal') {
+        player.hp = Math.min(100, player.hp + 20); // Reimu heal bonus
+    }
+    
+    // Defense blocks damage
+    if (playerCard === 'defend' && player.shield < 3) {
+        aiDamage = 0;
+        player.shield++;
+    }
+    if (aiCard === 'defend' && aiPlayer.shield < 3) {
+        playerDamage = 0;
+        aiPlayer.shield++;
+    }
+    
+    // Healing
+    if (playerCard === 'heal') player.hp = Math.min(100, player.hp + 15);
+    if (aiCard === 'heal') aiPlayer.hp = Math.min(100, aiPlayer.hp + 15);
+    
+    // Apply damage
+    player.hp = Math.max(0, player.hp - aiDamage);
+    aiPlayer.hp = Math.max(0, aiPlayer.hp - playerDamage);
+    
+    console.log(`After resolution: Player HP ${player.hp}, AI HP ${aiPlayer.hp}`);
+}
+
+function endGame(session, playerId) {
+    const player = session.players[playerId];
+    const aiPlayer = session.players['ai-bot'];
+    
+    const result = {
+        turn: session.turn,
+        a: { id: playerId, hp: player.hp },
+        b: { id: 'ai-bot', hp: aiPlayer.hp }
+    };
+    
+    // Find socket for this player
+    const playerSocket = io.sockets.sockets.get(playerId);
+    if (playerSocket) {
+        playerSocket.emit('cardgame/end', result);
+    }
+    
+    // Clean up session
+    cardGameSessions.delete(session.id);
+}
 
 // Combat turn resolution function
 function resolveCombatTurn(roomId, session, turn) {
@@ -1125,4 +1895,5 @@ function cleanupRooms() {
 server.listen(4000, () => {
     console.log('Listening on port 4000');
     console.log('Combat system enabled');
+    console.log('PvP Card game system enabled');
 });

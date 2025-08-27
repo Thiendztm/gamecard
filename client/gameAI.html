@@ -187,7 +187,7 @@
           <h3>Chuẩn bị trận đấu với AI Bot</h3>
           <div class="match-info">
             <div class="player-info">
-              <img id="player-avatar" class="lobby-avatar" src="./assets/reimu2.png" alt="Player"/>
+              <img id="player-avatar" class="lobby-avatar" src="../assets/reimu2.png" alt="Player"/>
               <div class="player-details">
                 <div class="player-name" id="player-name">Đang tải...</div>
                 <div class="player-character">
@@ -200,7 +200,7 @@
             </div>
             <div class="vs-text">VS</div>
             <div class="bot-info">
-              <img id="bot-avatar" class="lobby-avatar" src="./assets/marisa2.png" alt="AI Bot"/>
+              <img id="bot-avatar" class="lobby-avatar" src="../assets/marisa2.png" alt="AI Bot"/>
               <div class="bot-details">
                 <div class="bot-name" id="bot-name">AI Bot</div>
                 <div class="bot-difficulty">
@@ -284,7 +284,7 @@
 
           <!-- LEFT: YOU -->
           <div class="side" id="you-side">
-            <img id="you-avatar" class="avatar" src="./assets/reimu.png" alt="You"/>
+            <img id="you-avatar" class="avatar" src="../assets/reimu.png" alt="You"/>
             <div class="bar" style="width:100%">
               <div><strong id="you-name">YOU</strong></div>
               <div><span class="special-pill special-ready" id="you-special-pill">SPECIAL SKILL</span></div>
@@ -306,7 +306,7 @@
 
           <!-- RIGHT: AI BOT -->
           <div class="side" id="op-side">
-            <img id="op-avatar" class="avatar" src="./assets/marisa.png" alt="AI Bot"/>
+            <img id="op-avatar" class="avatar" src="../assets/marisa.png" alt="AI Bot"/>
             <div class="bar" style="width:100%">
               <div><strong id="op-name">AI BOT</strong></div>
               <div><span class="special-pill" id="op-special-pill">SPECIAL SKILL</span></div>
@@ -320,7 +320,7 @@
             <h3 class="center" style="margin:6px 0 10px">Tay bài của bạn</h3>
             <div class="hand-container">
               <button id="special-skill-btn" class="special-btn">
-                <img src="./assets/btnSK.png" alt="Special Skill">
+                <img src="../assets/btnSK.png" alt="Special Skill">
               </button>
               <div id="hand" class="hand"></div>
             </div>
@@ -343,6 +343,10 @@
       // Special skill state
       let specialSkillActive = false;
       let specialSkillUsed = false;
+
+      // Game state tracking
+      let last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"deckbuild", turn:0, yCurse:0, oCurse:0};
+      let myId = null;
       
       // Special skill button state management
       function updateSpecialButtonState() {
@@ -391,13 +395,13 @@
       window.onload = function() {
         // Random background for game room
         const backgrounds = [
-          './assets/background/bg3.png',
-          './assets/background/bg4.jpg', 
-          './assets/background/bg5.png',
-          './assets/background/bg6.jpg',
-          './assets/background/bg7.jpg',
-          './assets/background/background1.jpg',
-          './assets/background/background2.jpg'
+          '../assets/background/bg3.png',
+          '../assets/background/bg4.jpg', 
+          '../assets/background/bg5.png',
+          '../assets/background/bg6.jpg',
+          '../assets/background/bg7.jpg',
+          '../assets/background/background1.jpg',
+          '../assets/background/background2.jpg'
         ];
         const randomBg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
         document.body.style.backgroundImage = `url('${randomBg}'), linear-gradient(45deg, rgba(11,15,22,0.8), rgba(26,36,64,0.9))`;
@@ -574,7 +578,6 @@
       socket.on("cardgame/matched",(info)=>{
         console.log("Received cardgame/matched event (AI):", info);
         // Reset game state for new match
-        let last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"deckbuild", turn:0, yCurse:0, oCurse:0};
         specialSkillActive = false;
         specialSkillUsed = false;
         updateSpecialButtonState();
@@ -751,7 +754,7 @@
         addEventLog("Kết nối thành công với server");
       });
 
-      function charToAvatar(ch){return ch==="Marisa"?"./assets/marisa.png":"./assets/reimu.png";}
+      function charToAvatar(ch){return ch==="Marisa"?"../assets/marisa.png":"../assets/reimu.png";}
       let turnTimer=null;
       function setTimer(s){if(turnTimer)clearInterval(turnTimer);let r=s|0;const el=$("timer");el.textContent=r+"s";turnTimer=setInterval(()=>{r=Math.max(0,r-1);el.textContent=r+"s";if(r===0)clearInterval(turnTimer);},1000);}
 
@@ -772,10 +775,10 @@
         const el=document.createElement("div"); el.className="flip";
         // Get card image path
         let cardImage = '';
-        if (type === 'attack') cardImage = './assets/attack.jpg';
-        else if (type === 'defend') cardImage = './assets/shield.jpg';
-        else if (type === 'heal') cardImage = './assets/heal.jpg';
-        else if (type === 'curse') cardImage = './assets/curse.jpg';
+        if (type === 'attack') cardImage = '../assets/attack.jpg';
+        else if (type === 'defend') cardImage = '../assets/shield.jpg';
+        else if (type === 'heal') cardImage = '../assets/heal.jpg';
+        else if (type === 'curse') cardImage = '../assets/curse.jpg';
         el.innerHTML = `<div class="flip-inner">
           <div class="flip-face flip-front"></div>
           <div class="flip-face flip-back" ${cardImage ? `style="background-image: url('${cardImage}'); background-size: cover; background-position: center;"` : ''}></div>
@@ -796,7 +799,7 @@
         }
 
         $("you-avatar").src = you?.avatar || charToAvatar(you?.character||"Reimu");
-        $("op-avatar").src  = opp?.avatar || "./assets/marisa.png"; // AI avatar
+        $("op-avatar").src  = opp?.avatar || "../assets/marisa.png"; // AI avatar
         $("you-name").textContent = you?.name || "YOU";
         $("op-name").textContent = opp?.name || "AI BOT";
         $("you-special-pill").className = "special-pill " + (you?.specialUsed?"special-used":"special-ready");

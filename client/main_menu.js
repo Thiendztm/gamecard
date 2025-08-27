@@ -73,6 +73,25 @@ function initializeSocket() {
         }
     });
     
+    // Handle card game start for PvP mode
+    socket.on('cardGameStarted', () => {
+        console.log('Card game started - redirecting to gamePVP.html');
+        
+        // Store game data for PvP card battle
+        const gameData = {
+            roomId: currentRoom.id,
+            gameMode: 'card',
+            isAI: false,
+            players: currentRoom.players
+        };
+        sessionStorage.setItem('gameData', JSON.stringify(gameData));
+        sessionStorage.setItem('currentRoomId', currentRoom.id);
+        sessionStorage.setItem('matchMode', 'pvp');
+        
+        // Redirect to PvP game page
+        window.location.href = 'gamePVP.html';
+    });
+    
     socket.on('characterSelected', (data) => {
         if (currentRoom && currentRoom.id === data.roomId) {
             // Update character display for the player who selected
@@ -106,6 +125,8 @@ function initializeSocket() {
     
     socket.on('gameStart', (data) => {
         console.log('Game starting, redirecting to map...');
+        console.log('Game start data received:', data);
+        
         // Store game data in session storage for the map page
         sessionStorage.setItem('gameData', JSON.stringify(data));
         
@@ -114,9 +135,16 @@ function initializeSocket() {
         const user = JSON.parse(sessionStorage.getItem('user') || '{}');
         sessionStorage.setItem('currentPlayerId', user.username);
         
+        // Store character selections from server for multiplayer battles
+        if (data.characterSelections) {
+            console.log('Storing character selections from server:', data.characterSelections);
+            sessionStorage.setItem('roomCharacterSelections', JSON.stringify(data.characterSelections));
+        }
+        
         console.log('Combat session data stored:', {
             roomId: data.roomId,
-            playerId: user.username
+            playerId: user.username,
+            characterSelections: data.characterSelections
         });
         
         // Redirect to the randomly selected map
@@ -158,8 +186,7 @@ function initializeCharacterSelection() {
             const user = JSON.parse(sessionStorage.getItem('user') || '{}');
             const playerNumber = btn.dataset.player;
             
-            // Check if current room exists and has players
-            const currentRoom = JSON.parse(sessionStorage.getItem('currentRoom') || '{}');
+            // Check if current room exists and has players (use global currentRoom variable)
             if (!currentRoom || !currentRoom.players || currentRoom.players.length < 2) {
                 showMessage('Cần có đủ 2 người chơi mới có thể chọn nhân vật!', true);
                 return;
@@ -229,7 +256,8 @@ function initializeCharacterSelection() {
             currentPlayer = null;
             selectedCharacter = null;
         } else {
-            showMessage('Vui lòng chọn một nhân vật!', true);
+            // Don't allow confirmation without character selection
+            // No message shown - just prevent confirmation
         }
     });
     
@@ -285,6 +313,42 @@ function updateCharacterDisplays() {
             }
         });
     }
+}
+
+// Function to enable character selection for Battle mode
+function enableCharacterSelection() {
+    console.log('=== ENABLING CHARACTER SELECTION FOR BATTLE MODE ===');
+    
+    // Clear the flag
+    window.cardModeActive = false;
+    
+    // Remove any card mode indicators
+    const cardModeIndicator = document.getElementById('card-mode-indicator');
+    if (cardModeIndicator) {
+        cardModeIndicator.remove();
+    }
+    
+    // Re-enable character selection buttons
+    const characterButtons = document.querySelectorAll('.character-select-btn');
+    characterButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.textContent = 'Chọn nhân vật';
+        btn.style.cssText = '';
+        btn.style.pointerEvents = 'auto';
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    });
+    
+    // Show character selection sections
+    const characterSelections = document.querySelectorAll('.player-character-selection');
+    characterSelections.forEach(selection => {
+        selection.style.display = 'block';
+    });
+    
+    // Re-initialize character selection
+    initializeCharacterSelection();
+    
+    console.log('=== CHARACTER SELECTION ENABLED FOR BATTLE MODE ===');
 }
 
 // Function to disable character selection for Card mode with AI
@@ -353,7 +417,7 @@ function disableCharacterSelection() {
             characterModal.onclick = null;
         }
         
-        // Add visual indicator
+        // Add visual indicator for AI Card mode only
         const waitingRoomContent = document.querySelector('.waiting-room-content');
         if (waitingRoomContent) {
             let cardModeIndicator = document.getElementById('card-mode-indicator');
@@ -372,7 +436,7 @@ function disableCharacterSelection() {
                     border: 2px solid #ff8c42;
                     box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
                 `;
-                cardModeIndicator.innerHTML = '🎴 <strong>Chế độ Card</strong> - Không cần chọn nhân vật';
+                cardModeIndicator.innerHTML = '🎴 <strong>Chế độ Card AI</strong> - Không cần chọn nhân vật';
                 
                 // Insert at the very top
                 const firstChild = waitingRoomContent.firstChild;
@@ -381,12 +445,46 @@ function disableCharacterSelection() {
                 } else {
                     waitingRoomContent.appendChild(cardModeIndicator);
                 }
-                console.log('Card mode indicator added');
+                console.log('Card mode AI indicator added');
             }
         }
         
         console.log('=== CHARACTER SELECTION DISABLED ===');
     }, 100);
+}
+
+// Function to add PvP card mode indicator
+function addPvPCardModeIndicator() {
+    const waitingRoomContent = document.querySelector('.waiting-room-content');
+    if (waitingRoomContent) {
+        let cardModeIndicator = document.getElementById('card-mode-indicator');
+        if (!cardModeIndicator) {
+            cardModeIndicator = document.createElement('div');
+            cardModeIndicator.id = 'card-mode-indicator';
+            cardModeIndicator.style.cssText = `
+                background: #4CAF50;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                text-align: center;
+                margin: 15px 0;
+                font-weight: bold;
+                font-size: 16px;
+                border: 2px solid #66BB6A;
+                box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+            `;
+            cardModeIndicator.innerHTML = '🎴 <strong>Chế độ Card PvP</strong> - Không cần chọn nhân vật';
+            
+            // Insert at the very top
+            const firstChild = waitingRoomContent.firstChild;
+            if (firstChild) {
+                waitingRoomContent.insertBefore(cardModeIndicator, firstChild);
+            } else {
+                waitingRoomContent.appendChild(cardModeIndicator);
+            }
+            console.log('Card mode PvP indicator added');
+        }
+    }
 }
 
 // Function to show messages to user
@@ -699,7 +797,7 @@ function createRoom() {
         id: roomId,
         type: type === 'single' ? 'Đánh với máy' : 'Đánh với người',
         gameMode: type === 'single' ? 'single' : 'match',
-        mode: mode || 'Card',
+        mode: mode === 'battle' ? 'Battle' : (mode || 'Card'), // Ensure Battle mode is capitalized
         host: user.username || 'Unknown',
         note: duelNote || 'Không có ghi chú',
         password: duelPassword,
@@ -770,27 +868,49 @@ function openWaitingRoom(roomData) {
         console.log('- mode:', roomData.mode);
         console.log('- type:', roomData.type);
         
-        // Check if this is Card mode with AI - set flag BEFORE updating UI
-        const isCardMode = roomData.gameMode === 'single' && roomData.mode === 'Card';
-        const isAIMode = roomData.type === 'Đánh với máy';
+        // Check if this is Card mode - set flag BEFORE updating UI
+        const isCardModeAI = roomData.gameMode === 'single' && roomData.mode?.toLowerCase() === 'card';
+        const isCardModePvP = roomData.gameMode === 'match' && roomData.mode?.toLowerCase() === 'card';
+        const isBattleMode = roomData.mode?.toLowerCase() === 'battle';
         
-        console.log('Card mode check:', isCardMode);
-        console.log('AI mode check:', isAIMode);
+        console.log('Card mode AI check:', isCardModeAI);
+        console.log('Card mode PvP check:', isCardModePvP);
+        console.log('Battle mode check:', isBattleMode);
         
-        if (isCardMode || isAIMode) {
+        if (isCardModeAI) {
             window.cardModeActive = true;
             console.log('=== CARD MODE WITH AI DETECTED ===');
             console.log('Setting cardModeActive = true');
+        } else if (isCardModePvP) {
+            console.log('=== CARD MODE PVP DETECTED ===');
+            // Set flag for PvP card game but stay in waiting room
+            window.cardModePvP = true;
+            // Add PvP card mode indicator
+            setTimeout(() => {
+                addPvPCardModeIndicator();
+            }, 500);
+        } else if (isBattleMode) {
+            console.log('=== BATTLE MODE DETECTED ===');
+            // Battle mode should allow character selection
+            window.cardModeActive = false;
+            window.cardModePvP = false;
         }
         
         updateWaitingRoom();
         
-        // Disable character selection AFTER updating UI for Card mode
-        if (isCardMode || isAIMode) {
-            console.log('Scheduling character selection disable...');
+        // Only disable character selection for Card modes, NOT Battle mode
+        if (isCardModeAI || isCardModePvP) {
+            console.log('Scheduling character selection disable for card mode...');
             setTimeout(() => {
-                console.log('Executing disableCharacterSelection now...');
+                console.log('Executing disableCharacterSelection for card mode...');
                 disableCharacterSelection();
+            }, 500);
+        } else if (isBattleMode) {
+            console.log('Battle mode detected - ensuring character selection is enabled');
+            // Ensure character selection is enabled for battle mode
+            window.cardModeActive = false;
+            setTimeout(() => {
+                enableCharacterSelection();
             }, 500);
         }
     } else {
@@ -963,8 +1083,14 @@ function updateWaitingRoom() {
     // Check if both players are ready (skip for Card mode with AI)
     if (!(currentRoom.gameMode === 'single' && currentRoom.mode === 'Card')) {
         if (players.length === 2 && players.every(p => p.ready)) {
-            // Ensure this is not Card mode before auto-starting
-            if (currentRoom.gameMode !== 'single' || currentRoom.mode !== 'Card') {
+            // Check if this is PvP Card mode
+            if (currentRoom.gameMode === 'match' && currentRoom.mode?.toLowerCase() === 'card') {
+                // Redirect to PvP card game
+                setTimeout(() => {
+                    window.location.href = `/gamePVP.html?roomId=${currentRoom.id}`;
+                }, 1000);
+            } else if (currentRoom.gameMode !== 'single' || currentRoom.mode !== 'Card') {
+                // Regular game start for non-card modes
                 setTimeout(() => {
                     if (socket && currentRoom) {
                         socket.emit('startGame', {
@@ -994,14 +1120,29 @@ function toggleReady() {
     const currentPlayer = currentRoom.players.find(p => p.id === user.username);
     
     if (currentPlayer) {
+        // Check if this is PvP Card mode first
+        const isCardModePvP = currentRoom.gameMode === 'match' && currentRoom.mode?.toLowerCase() === 'card';
+        
+        if (isCardModePvP || window.cardModePvP) {
+            console.log('PvP Card mode detected - using normal ready system');
+            // For PvP card mode, use normal playerReady system but skip character check
+            const newReadyState = !currentPlayer.ready;
+            socket.emit('playerReady', {
+                roomId: currentRoom.id,
+                playerId: user.username,
+                ready: newReadyState
+            });
+            return;
+        }
+        
         // For Card mode with AI, skip character selection requirement
-        const isCardMode = currentRoom.gameMode === 'single' && currentRoom.mode === 'Card';
+        const isCardModeAI = currentRoom.gameMode === 'single' && currentRoom.mode === 'Card';
         const isAIMode = currentRoom.type === 'Đánh với máy';
         
-        if (isCardMode || isAIMode || window.cardModeActive) {
-            console.log('Card mode detected in toggleReady, redirecting to gameplay...');
+        if (isCardModeAI || isAIMode || window.cardModeActive) {
+            console.log('AI Card mode detected in toggleReady, redirecting to gameAI.html...');
             
-            // Always redirect to gamePlay.html when button is clicked in Card mode
+            // Store game data for AI battle
             const gameData = {
                 roomId: currentRoom.id,
                 gameMode: 'card',
@@ -1011,20 +1152,15 @@ function toggleReady() {
             sessionStorage.setItem('gameData', JSON.stringify(gameData));
             sessionStorage.setItem('currentRoomId', currentRoom.id);
             sessionStorage.setItem('currentPlayerId', user.username);
+            sessionStorage.setItem('matchMode', 'ai');
             
-            // Force redirect to gamePlay.html
-            window.location.href = 'gamePlay.html';
+            // Direct redirect to gameAI.html for AI Card battles
+            window.location.href = 'gameAI.html';
             return;
         }
         
-        // For other modes, check if user has selected a character before allowing ready
-        const characterSelections = JSON.parse(sessionStorage.getItem('characterSelections') || '{}');
-        const userCharacter = characterSelections[user.username];
-        
-        if (!userCharacter && !currentPlayer.ready) {
-            showMessage('Bạn phải chọn nhân vật trước khi sẵn sàng!', true);
-            return;
-        }
+        // For Battle mode, allow ready without character selection requirement
+        // Character selection is optional and will default if not selected
         
         const newReadyState = !currentPlayer.ready;
         socket.emit('playerReady', {

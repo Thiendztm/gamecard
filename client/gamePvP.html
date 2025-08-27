@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Touhou FM: Battle Card - Đấu với Người</title>
-    <link rel="stylesheet" href="gameplay.css">
+    <link rel="stylesheet" href="css/gameplay.css">
     <style>
     /* Game Result Overlay */
     .game-result-overlay {
@@ -22,12 +22,10 @@
     }
     
     .result-container {
-      background: linear-gradient(135deg, #1e293b, #334155);
-      border: 2px solid #475569;
-      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(0, 20, 20, 0.9), rgba(0, 40, 40, 0.9));
+      border-radius: 8px;
       padding: 40px;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
       max-width: 500px;
       width: 90%;
       animation: slideUp 0.6s ease-out;
@@ -94,20 +92,15 @@
     }
     
     .result-btn.primary {
-      background: #3b82f6;
+      background: black;
       color: white;
     }
     
     .result-btn.secondary {
-      background: #6b7280;
+      background: black;
       color: white;
     }
-    
-    .result-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-    
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -143,6 +136,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/scripts/sound.js"></script>
   <script src="/scripts/bgm.js"></script>
+  <script src="sfx-manager.js"></script>
   </head>
   <body>
     <!-- Game Result Overlay -->
@@ -203,7 +197,7 @@
           <h3>Chuẩn bị trận đấu với Người chơi</h3>
           <div class="match-info">
             <div class="player-info">
-              <img id="player-avatar" class="lobby-avatar" src="./assets/reimu2.png" alt="Player"/>
+              <img id="player-avatar" class="lobby-avatar" src="../assets/reimu2.png" alt="Player"/>
               <div class="player-details">
                 <div class="player-name" id="player-name">Đang tải...</div>
                 <div class="player-character">
@@ -216,7 +210,7 @@
             </div>
             <div class="vs-text">VS</div>
             <div class="bot-info">
-              <img id="bot-avatar" class="lobby-avatar" src="./assets/cirno.png" alt="Opponent"/>
+              <img id="bot-avatar" class="lobby-avatar" src="../assets/cirno.png" alt="Opponent"/>
               <div class="bot-details">
                 <div class="bot-name" id="bot-name">Đối thủ</div>
                 <div class="bot-difficulty" id="bot-difficulty">Đang chờ người chơi...</div>
@@ -297,7 +291,7 @@
 
           <!-- LEFT: YOU -->
           <div class="side" id="you-side">
-            <img id="you-avatar" class="avatar" src="./assets/reimu.png" alt="You"/>
+            <img id="you-avatar" class="avatar" src="../assets/reimu.png" alt="You"/>
             <div class="bar" style="width:100%">
               <div><strong id="you-name">YOU</strong></div>
               <div><span class="special-pill special-ready" id="you-special-pill">SPECIAL SKILL</span></div>
@@ -319,7 +313,7 @@
 
           <!-- RIGHT: OPPONENT -->
           <div class="side" id="op-side">
-            <img id="op-avatar" class="avatar" src="./assets/cirno.png" alt="Opponent"/>
+            <img id="op-avatar" class="avatar" src="../assets/cirno.png" alt="Opponent"/>
             <div class="bar" style="width:100%">
               <div><strong id="op-name">OPPONENT</strong></div>
               <div><span class="special-pill" id="op-special-pill">SPECIAL SKILL</span></div>
@@ -333,7 +327,7 @@
             <h3 class="center" style="margin:6px 0 10px">Tay bài của bạn</h3>
             <div class="hand-container">
               <button id="special-skill-btn" class="special-btn">
-                <img src="./assets/btnSK.png" alt="Special Skill">
+                <img src="../assets/btnSK.png" alt="Special Skill">
               </button>
               <div id="hand" class="hand"></div>
             </div>
@@ -357,6 +351,10 @@
       let specialSkillActive = false;
       let specialSkillUsed = false;
       let isSearching = false;
+      
+      // Game state tracking
+      let last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"deckbuild", turn:0, yCurse:0, oCurse:0};
+      let myId = null;
       
       // Special skill button state management
       function updateSpecialButtonState() {
@@ -405,13 +403,13 @@
       window.onload = function() {
         // Random background for game room
         const backgrounds = [
-          './assets/background/bg3.png',
-          './assets/background/bg4.jpg', 
-          './assets/background/bg5.png',
-          './assets/background/bg6.jpg',
-          './assets/background/bg7.jpg',
-          './assets/background/background1.jpg',
-          './assets/background/background2.jpg'
+          '../assets/background/bg3.png',
+          '../assets/background/bg4.jpg', 
+          '../assets/background/bg5.png',
+          '../assets/background/bg6.jpg',
+          '../assets/background/bg7.jpg',
+          '../assets/background/background1.jpg',
+          '../assets/background/background2.jpg'
         ];
         const randomBg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
         document.body.style.backgroundImage = `url('${randomBg}'), linear-gradient(45deg, rgba(11,15,22,0.8), rgba(26,36,64,0.9))`;
@@ -548,8 +546,8 @@
         sessionStorage.setItem('playerDeck', JSON.stringify(selectedDeck));
         
         // Reset game state before starting new game
-        let myId = null;
-        let last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"play", turn:0, yCurse:0, oCurse:0};
+        myId = null;
+        last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"play", turn:0, yCurse:0, oCurse:0};
         
         console.log("Emitting cardgame/join for PvP game");
         socket.emit("cardgame/join", {name, character, isBot: false, avatar: playerAvatar});
@@ -572,7 +570,7 @@
         $("waiting-status").style.display = "none";
         
         // Reset game state for new match
-        let last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"deckbuild", turn:0, yCurse:0, oCurse:0};
+        last = {yhp:100, ohp:100, yshield:0, oshield:0, phase:"deckbuild", turn:0, yCurse:0, oCurse:0};
         specialSkillActive = false;
         specialSkillUsed = false;
         updateSpecialButtonState();
@@ -714,7 +712,7 @@
         addEventLog("Kết nối thành công với server");
       });
 
-      function charToAvatar(ch){return ch==="Marisa"?"./assets/marisa.png":"./assets/reimu.png";}
+      function charToAvatar(ch){return ch==="Marisa"?"../assets/marisa2.png":"../assets/reimu.png";}
       let turnTimer=null;
       function setTimer(s){if(turnTimer)clearInterval(turnTimer);let r=s|0;const el=$("timer");el.textContent=r+"s";turnTimer=setInterval(()=>{r=Math.max(0,r-1);el.textContent=r+"s";if(r===0)clearInterval(turnTimer);},1000);}
 
@@ -735,10 +733,10 @@
         const el=document.createElement("div"); el.className="flip";
         // Get card image path
         let cardImage = '';
-        if (type === 'attack') cardImage = './assets/attack.jpg';
-        else if (type === 'defend') cardImage = './assets/shield.jpg';
-        else if (type === 'heal') cardImage = './assets/heal.jpg';
-        else if (type === 'curse') cardImage = './assets/curse.jpg';
+        if (type === 'attack') cardImage = '../assets/attack.jpg';
+        else if (type === 'defend') cardImage = '../assets/shield.jpg';
+        else if (type === 'heal') cardImage = '../assets/heal.jpg';
+        else if (type === 'curse') cardImage = '../assets/curse.jpg';
         el.innerHTML = `<div class="flip-inner">
           <div class="flip-face flip-front"></div>
           <div class="flip-face flip-back" ${cardImage ? `style="background-image: url('${cardImage}'); background-size: cover; background-position: center;"` : ''}></div>
