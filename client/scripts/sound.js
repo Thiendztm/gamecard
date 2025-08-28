@@ -10,9 +10,9 @@ const SOUND_PATHS = {
     heal: './audio/heal.mp3',
     curse: './audio/curse.mp3',
     // Game result sounds
-    win: './audio/bgm1.mp3', // use existing bgm file
-    lose: './sfx/pldead00.wav', // player death sound
-    draw: './audio/heal.mp3' // use existing heal sound
+    win: './audio/Win.mp3', // use existing bgm file
+    lose: './audio/Lose.mp3', // player death sound
+    draw: './audio/Draw.mp3' // use existing heal sound
 };
 
 // Function to unlock audio on first user interaction

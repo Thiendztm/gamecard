@@ -2,17 +2,26 @@
   "name": "cardboard",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "description": "Touhou FM: Battle Card - Game thẻ bài đối kháng",
   "author": "",
   "license": "ISC",
-  "description": "",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "server": "node server/server.js",
+    "server:dev": "nodemon server/server.js",
+    "migrate": "node server/db/migrate.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "express": "^5.1.0",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "express-rate-limit": "^8.0.1",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.3",
     "ngrok": "^5.0.0-beta.2",
     "nodemailer": "^7.0.5",
     "nodemon": "^3.1.10",

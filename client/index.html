@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="password-managers" content="disabled">
     <title>Board Card Game</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
+    <link rel="shortcut icon" href="favicon.ico">
     <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <script src="/socket.io/socket.io.js"></script>
     <script src="./client.js" defer></script>
@@ -25,13 +24,34 @@
         <div class="panel-content">
             <div class="game-description">
                 <h3>Giới thiệu</h3>
-                <p>Là một trò chơi thể loại thẻ bài fanmade từ series game có tiếng Touhou của nhà phát triển game ZUN.   </p>
+                <p>Touhou FM: Card Battle là game fanmade từ series Touhou nổi tiếng của ZUN với 2 chế độ chơi hoàn toàn khác nhau: Card Mode và Battle Mode!</p>
             </div>
             
             <div class="game-features">
                 <h3>Gameplay</h3>
                 <ul>
-
+                    <li>-<strong>CARD MODE:</strong> Thẻ bài chiến thuật (100HP, 15 deck, 4 loại thẻ)</li>
+                    <li>-<strong>BATTLE MODE:</strong> Chiến đấu turn-based (150HP/MP, skills, actions)</li>
+                    <li>-<strong>Card:</strong> Attack (25), Defend (+20), Heal (+20), Curse (debuff)</li>
+                    <li>-<strong>Battle:</strong> Đánh/Kỹ năng/Phòng thủ với MP system</li>
+                    <li>-<strong>2 chế độ đấu:</strong> PvP online real-time hoặc AI thông minh</li>
+                    <li>-<strong>Nhân vật:</strong> Reimu (bonus +20), Marisa (bonus +25)</li>
+                    <li>-<strong>Battle Maps:</strong> 5 map khác nhau với background độc đáo</li>
+                    <li>-<strong>Hệ thống:</strong> Win/Loss/Draw riêng cho từng mode</li>
+                </ul>
+            </div>
+            
+            <div class="game-rules">
+                <h3>Luật chơi</h3>
+                <ul>
+                    <li>-<strong>Card Mode:</strong> Mỗi lượt 20 giây, 5 lá trên tay, 10 turn tối đa</li>
+                    <li>-<strong>Deck Building:</strong> 15 lá/deck, tối đa 6 lá mỗi loại thẻ</li>
+                    <li>-<strong>Special Skills:</strong> Mỗi trận chỉ dùng 1 lần, cần combo đúng loại thẻ</li>
+                    <li>-<strong>Curse Effect:</strong> Giảm 5HP + 5ATK trong 3 turn</li>
+                    <li>-<strong>Shield System:</strong> Defend tạo shield, chặn damage tiếp theo</li>
+                    <li>-<strong>Điều kiện thắng:</strong> HP đối thủ = 0 hoặc hết 10 turn (HP cao hơn thắng)</li>
+                    <li>-<strong>Battle Mode:</strong> 150HP/MP, sử dụng MP để cast skills</li>
+                    <li>-<strong>Maps:</strong> 5 battlefield khác nhau với atmosphere riêng</li>
                 </ul>
             </div>
         </div>

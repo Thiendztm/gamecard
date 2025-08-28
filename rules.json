@@ -12,7 +12,7 @@
     "curse": 0
   },
   "SPECIALS": {
-    "Miko": {
+    "Reimu": {
       "id": "miko",
       "name": "Blessing",
       "description": "Double this turn's heal (+20).",
@@ -20,7 +20,7 @@
       "bonus": 20,
       "oncePerGame": true
     },
-    "Witch": {
+    "Marisa": {
       "id": "witch",
       "name": "Overcharge",
       "description": "Double this turn's attack (+25).",
